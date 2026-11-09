@@ -1,0 +1,59 @@
+.plans {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.current {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.price {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.price span {
+  font-size: 0.9375rem;
+  font-weight: 400;
+}
+
+.features {
+  flex: 1;
+  margin: 0;
+  padding-left: 1.125rem;
+  font-size: 0.9375rem;
+}
+
+.features li + li {
+  margin-top: 0.25rem;
+}
+
+.currentLabel {
+  align-self: flex-start;
+  padding: 0.5rem 0;
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.vatNote {
+  margin: 0.75rem 0 2rem;
+  font-size: 0.875rem;
+}
+
+.planCell {
+  text-transform: capitalize;
+}
+
+@media (max-width: 860px) {
+  .plans {
+    grid-template-columns: 1fr;
+  }
+}

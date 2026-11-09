@@ -1,0 +1,148 @@
+export type UserRole = 'owner' | 'staff' | 'acme_admin';
+export type PlanId = 'starter' | 'clinic' | 'group';
+export type AppointmentStatus = 'booked' | 'completed' | 'cancelled' | 'no_show';
+export type OrderStatus = 'pending' | 'paid' | 'failed';
+
+export interface CurrentUser {
+  id: number;
+  email: string;
+  name: string;
+  role: UserRole;
+  clinicId: number | null;
+}
+
+export interface Clinic {
+  id: number;
+  name: string;
+  slug: string;
+  email: string;
+  phone: string | null;
+  addressLine: string | null;
+  city: string;
+  country: string;
+  timezone: string;
+  opensAt: string;
+  closesAt: string;
+  openDays: number[];
+  bookingEnabled: boolean;
+  plan: PlanId | null;
+}
+
+export interface StaffMember {
+  id: number;
+  name: string;
+  title: string;
+  email: string | null;
+  active: boolean;
+}
+
+export interface Service {
+  id: number;
+  name: string;
+  description: string;
+  durationMinutes: number;
+  priceCents: number;
+  active: boolean;
+}
+
+export interface Customer {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  createdAt: string;
+}
+
+export interface AppointmentListItem {
+  id: number;
+  startsAt: string;
+  endsAt: string;
+  timeLabel: string;
+  durationMinutes: number;
+  status: AppointmentStatus;
+  source: 'online' | 'staff';
+  notes: string | null;
+  service: { id: number; name: string; priceCents: number };
+  staff: { id: number; name: string };
+  customer: { id: number; name: string; email: string; phone: string | null };
+}
+
+export interface DashboardData {
+  clinicName: string;
+  todayCount: number;
+  weekCount: number;
+  monthRevenueCents: number;
+  upcoming: AppointmentListItem[];
+}
+
+export interface Plan {
+  id: PlanId;
+  name: string;
+  description: string;
+  priceCents: number;
+  staffLimit: number | null;
+  features: string[];
+}
+
+export interface PlanQuote {
+  plan: Plan;
+  subtotalCents: number;
+  vatRate: number;
+  vatCents: number;
+  totalCents: number;
+  currency: string;
+}
+
+export interface PlanOrder {
+  id: number;
+  plan: PlanId;
+  subtotalCents: number;
+  vatCents: number;
+  amountCents: number;
+  currency: string;
+  status: OrderStatus;
+  billingName: string;
+  createdAt: string;
+  paidAt: string | null;
+}
+
+export interface AdminOrder {
+  id: number;
+  clinicId: number;
+  clinicName: string;
+  plan: PlanId;
+  amountCents: number;
+  currency: string;
+  status: OrderStatus;
+  createdAt: string;
+}
+
+export interface BookingPageData {
+  clinic: {
+    name: string;
+    slug: string;
+    city: string;
+    addressLine: string | null;
+    phone: string | null;
+    timezone: string;
+    opensAt: string;
+    closesAt: string;
+    openDays: number[];
+  };
+  services: Pick<Service, 'id' | 'name' | 'description' | 'durationMinutes' | 'priceCents'>[];
+  staff: Pick<StaffMember, 'id' | 'name' | 'title'>[];
+}
+
+export interface AvailableSlot {
+  startsAt: string;
+  label: string;
+  staffIds: number[];
+}
+
+export interface BookingConfirmation {
+  appointmentId: number;
+  clinicName: string;
+  serviceName: string;
+  staffName: string;
+  when: string;
+}

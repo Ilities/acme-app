@@ -1,0 +1,73 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.tabs {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.tab {
+  padding: 0.375rem 0.875rem;
+  border: none;
+  border-radius: var(--radius-small);
+  background: none;
+  color: var(--color-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tabActive {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.filters :global(.input) {
+  width: 240px;
+}
+
+.filters :global(.select) {
+  width: 160px;
+}
+
+.count {
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.time {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .filters {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .filters :global(.input),
+  .filters :global(.select) {
+    width: 100%;
+  }
+}
