@@ -18,14 +18,26 @@ const STATUS_OPTIONS: { value: '' | AppointmentStatus; label: string }[] = [
   { value: 'no_show', label: 'No-show' },
 ];
 
+/** A booked appointment in the past can be completed or marked a no-show; a future one cancelled. */
+const hasStarted = (startsAt: string) => new Date(startsAt).getTime() < Date.now();
+
 export function AppointmentsPage() {
   const [scope, setScope] = useState<Scope>('upcoming');
   const [status, setStatus] = useState<'' | AppointmentStatus>('');
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search);
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const params = new URLSearchParams({ scope });
+  const rangeActive = from !== '' || to !== '';
+  const params = new URLSearchParams();
+  if (rangeActive) {
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+  } else {
+    params.set('scope', scope);
+  }
   if (status) params.set('status', status);
   if (debouncedSearch.trim()) params.set('q', debouncedSearch.trim());
 
@@ -50,9 +62,16 @@ export function AppointmentsPage() {
       <PageHeader
         title="Appointments"
         actions={
-          <Link to="/appointments/new" className="button">
-            New appointment
-          </Link>
+          <>
+            {appointments.length > 0 && (
+              <a className="button button-secondary" href={`/api/appointments/export?${params.toString()}`} download>
+                Export CSV
+              </a>
+            )}
+            <Link to="/appointments/new" className="button">
+              New appointment
+            </Link>
+          </>
         }
       />
 
@@ -62,8 +81,8 @@ export function AppointmentsPage() {
             <button
               key={value}
               type="button"
-              className={scope === value ? `${styles.tab} ${styles.tabActive}` : styles.tab}
-              aria-pressed={scope === value}
+              className={scope === value && !rangeActive ? `${styles.tab} ${styles.tabActive}` : styles.tab}
+              aria-pressed={scope === value && !rangeActive}
               onClick={() => setScope(value)}
             >
               {value === 'upcoming' ? 'Upcoming' : 'Past'}
@@ -82,6 +101,26 @@ export function AppointmentsPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
+          <div className={styles.dateField}>
+            <label htmlFor="appointment-from">From</label>
+            <input
+              id="appointment-from"
+              type="date"
+              className="input"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+            />
+          </div>
+          <div className={styles.dateField}>
+            <label htmlFor="appointment-to">To</label>
+            <input
+              id="appointment-to"
+              type="date"
+              className="input"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+            />
+          </div>
           <label className="visually-hidden" htmlFor="status-filter">
             Status
           </label>
@@ -106,7 +145,9 @@ export function AppointmentsPage() {
 
       {data && appointments.length === 0 && (
         <EmptyState title="No appointments found">
-          {search || status ? 'Try a different search or status.' : 'New bookings will show up here.'}
+          {search || status || rangeActive
+            ? 'Try a different search, status or date range.'
+            : 'New bookings will show up here.'}
         </EmptyState>
       )}
 
@@ -153,7 +194,7 @@ export function AppointmentsPage() {
                       <StatusBadge status={appointment.status} />
                     </td>
                     <td className={styles.actions}>
-                      {appointment.status === 'booked' && scope === 'past' && (
+                      {appointment.status === 'booked' && hasStarted(appointment.startsAt) && (
                         <>
                           <button
                             type="button"
@@ -171,7 +212,7 @@ export function AppointmentsPage() {
                           </button>
                         </>
                       )}
-                      {appointment.status === 'booked' && scope === 'upcoming' && (
+                      {appointment.status === 'booked' && !hasStarted(appointment.startsAt) && (
                         <button
                           type="button"
                           className="button button-secondary button-small"

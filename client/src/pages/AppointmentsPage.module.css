@@ -44,6 +44,18 @@
   width: 160px;
 }
 
+.dateField {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.dateField :global(.input) {
+  width: 150px;
+}
+
 .count {
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
