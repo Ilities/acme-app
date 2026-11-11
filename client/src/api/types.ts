@@ -2,6 +2,8 @@ export type UserRole = 'owner' | 'staff' | 'acme_admin';
 export type PlanId = 'starter' | 'clinic' | 'group';
 export type AppointmentStatus = 'booked' | 'completed' | 'cancelled' | 'no_show';
 export type OrderStatus = 'pending' | 'paid' | 'failed';
+export type DepositType = 'none' | 'fixed' | 'percent';
+export type DepositStatus = 'pending' | 'paid' | 'failed';
 
 export interface CurrentUser {
   id: number;
@@ -25,6 +27,8 @@ export interface Clinic {
   closesAt: string;
   openDays: number[];
   bookingEnabled: boolean;
+  depositsEnabled: boolean;
+  depositRefundableHours: number;
   plan: PlanId | null;
 }
 
@@ -42,6 +46,8 @@ export interface Service {
   description: string;
   durationMinutes: number;
   priceCents: number;
+  depositType: DepositType;
+  depositValue: number | null;
   active: boolean;
 }
 

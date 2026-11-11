@@ -5,6 +5,8 @@ export const USER_ROLES = ['owner', 'staff', 'acme_admin'] as const;
 export const APPOINTMENT_STATUSES = ['booked', 'completed', 'cancelled', 'no_show'] as const;
 export const APPOINTMENT_SOURCES = ['online', 'staff'] as const;
 export const ORDER_STATUSES = ['pending', 'paid', 'failed'] as const;
+export const DEPOSIT_TYPES = ['none', 'fixed', 'percent'] as const;
+export const DEPOSIT_STATUSES = ['pending', 'paid', 'failed'] as const;
 
 const createdAt = () =>
   integer('created_at', { mode: 'timestamp_ms' })
@@ -25,6 +27,8 @@ export const clinics = sqliteTable('clinics', {
   closesAt: text('closes_at').notNull().default('17:00'),
   openDays: text('open_days').notNull().default('1,2,3,4,5'),
   bookingEnabled: integer('booking_enabled', { mode: 'boolean' }).notNull().default(true),
+  depositsEnabled: integer('deposits_enabled', { mode: 'boolean' }).notNull().default(false),
+  depositRefundableHours: integer('deposit_refundable_hours').notNull().default(24),
   plan: text('plan', { enum: PLAN_IDS }),
   createdAt: createdAt(),
 });
@@ -88,6 +92,8 @@ export const services = sqliteTable(
     description: text('description').notNull().default(''),
     durationMinutes: integer('duration_minutes').notNull(),
     priceCents: integer('price_cents').notNull(),
+    depositType: text('deposit_type', { enum: DEPOSIT_TYPES }).notNull().default('none'),
+    depositValue: integer('deposit_value'),
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
     createdAt: createdAt(),
   },
@@ -138,6 +144,31 @@ export const appointments = sqliteTable(
   ],
 );
 
+export const depositPayments = sqliteTable(
+  'deposit_payments',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    clinicId: integer('clinic_id')
+      .notNull()
+      .references(() => clinics.id, { onDelete: 'cascade' }),
+    appointmentId: integer('appointment_id')
+      .notNull()
+      .references(() => appointments.id, { onDelete: 'cascade' }),
+    amountCents: integer('amount_cents').notNull(),
+    currency: text('currency').notNull().default('EUR'),
+    status: text('status', { enum: DEPOSIT_STATUSES }).notNull().default('pending'),
+    providerReference: text('provider_reference'),
+    failureReason: text('failure_reason'),
+    refundableHours: integer('refundable_hours').notNull(),
+    paidAt: integer('paid_at', { mode: 'timestamp_ms' }),
+    createdAt: createdAt(),
+  },
+  (table) => [
+    index('deposit_payments_clinic_idx').on(table.clinicId),
+    uniqueIndex('deposit_payments_appointment_idx').on(table.appointmentId),
+  ],
+);
+
 export const planOrders = sqliteTable(
   'plan_orders',
   {
@@ -167,8 +198,11 @@ export type StaffMember = typeof staffMembers.$inferSelect;
 export type Service = typeof services.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
+export type DepositPayment = typeof depositPayments.$inferSelect;
 export type PlanOrder = typeof planOrders.$inferSelect;
 export type PlanId = (typeof PLAN_IDS)[number];
 export type UserRole = (typeof USER_ROLES)[number];
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+export type DepositType = (typeof DEPOSIT_TYPES)[number];
+export type DepositStatus = (typeof DEPOSIT_STATUSES)[number];

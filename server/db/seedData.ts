@@ -1,4 +1,4 @@
-import type { PlanId, UserRole } from './schema.js';
+import type { DepositType, PlanId, UserRole } from './schema.js';
 
 export interface SeedClinic {
   name: string;
@@ -13,9 +13,18 @@ export interface SeedClinic {
   closesAt: string;
   openDays: string;
   plan: PlanId | null;
+  depositsEnabled?: boolean;
+  depositRefundableHours?: number;
   users: { name: string; email: string; role: UserRole }[];
   staff: { name: string; title: string; email?: string }[];
-  services: { name: string; description: string; durationMinutes: number; priceCents: number }[];
+  services: {
+    name: string;
+    description: string;
+    durationMinutes: number;
+    priceCents: number;
+    depositType?: DepositType;
+    depositValue?: number | null;
+  }[];
   customerNames: { first: string[]; last: string[] };
   emailDomain: string;
   phonePrefix: string;
@@ -173,6 +182,8 @@ export const SEED_CLINICS: SeedClinic[] = [
     closesAt: '17:00',
     openDays: '1,2,3,4,5',
     plan: 'group',
+    depositsEnabled: true,
+    depositRefundableHours: 24,
     users: [
       { name: 'Karin Lindqvist', email: 'karin@sodermalmhud.example', role: 'owner' },
       { name: 'Johan Berg', email: 'johan@sodermalmhud.example', role: 'staff' },
@@ -190,6 +201,8 @@ export const SEED_CLINICS: SeedClinic[] = [
         description: 'Consultation with a dermatologist.',
         durationMinutes: 30,
         priceCents: 9500,
+        depositType: 'fixed',
+        depositValue: 2500,
       },
       {
         name: 'Mole check',
@@ -208,6 +221,8 @@ export const SEED_CLINICS: SeedClinic[] = [
         description: 'Laser treatment for pigmentation and redness.',
         durationMinutes: 45,
         priceCents: 19500,
+        depositType: 'percent',
+        depositValue: 25,
       },
       {
         name: 'Chemical peel',

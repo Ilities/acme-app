@@ -31,6 +31,8 @@ function toForm(clinic: Clinic): SettingsForm {
     closesAt: clinic.closesAt,
     openDays: clinic.openDays,
     bookingEnabled: clinic.bookingEnabled,
+    depositsEnabled: clinic.depositsEnabled,
+    depositRefundableHours: clinic.depositRefundableHours,
   };
 }
 

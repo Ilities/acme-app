@@ -1,11 +1,13 @@
 import { hashPassword } from '../auth/password.js';
 import { addDays, addMinutes, isoWeekday, toLocalDateString, zonedTimeToUtc } from '../lib/dates.js';
+import { percentOf } from '../lib/money.js';
 import { quotePlan } from '../payments/plans.js';
 import { db, sqlite } from './client.js';
 import {
   appointments,
   clinics,
   customers,
+  depositPayments,
   passwordResetTokens,
   planOrders,
   services,
@@ -66,6 +68,7 @@ function pastStatus(random: Random): AppointmentStatus {
 function clearDatabase() {
   db.delete(sessions).run();
   db.delete(passwordResetTokens).run();
+  db.delete(depositPayments).run();
   db.delete(appointments).run();
   db.delete(planOrders).run();
   db.delete(customers).run();
@@ -90,6 +93,8 @@ function seedClinic(seed: SeedClinic, passwordHash: string, random: Random, now:
       opensAt: seed.opensAt,
       closesAt: seed.closesAt,
       openDays: seed.openDays,
+      depositsEnabled: seed.depositsEnabled ?? false,
+      depositRefundableHours: seed.depositRefundableHours ?? 24,
       plan: seed.plan,
       createdAt: new Date(now.getTime() - 400 * 86_400_000),
     })
@@ -171,7 +176,10 @@ function seedClinic(seed: SeedClinic, passwordHash: string, random: Random, now:
     busy.set(member.id, staffBusy);
 
     const isPast = endsAt < now;
-    db.insert(appointments)
+    const source = random.chance(0.6) ? 'online' : 'staff';
+    const appointmentCreatedAt = new Date(startsAt.getTime() - random.int(1, 20) * 86_400_000);
+    const appointment = db
+      .insert(appointments)
       .values({
         clinicId: clinic.id,
         serviceId: service.id,
@@ -180,11 +188,37 @@ function seedClinic(seed: SeedClinic, passwordHash: string, random: Random, now:
         startsAt,
         endsAt,
         status: isPast ? pastStatus(random) : random.chance(0.92) ? 'booked' : 'cancelled',
-        source: random.chance(0.6) ? 'online' : 'staff',
+        source,
         notes: random.chance(0.15) ? random.pick(APPOINTMENT_NOTES) : null,
-        createdAt: new Date(startsAt.getTime() - random.int(1, 20) * 86_400_000),
+        createdAt: appointmentCreatedAt,
       })
-      .run();
+      .returning()
+      .get();
+
+    if (
+      seed.depositsEnabled &&
+      source === 'online' &&
+      service.depositType !== 'none' &&
+      service.depositValue !== null
+    ) {
+      const amountCents =
+        service.depositType === 'fixed'
+          ? service.depositValue
+          : percentOf(service.priceCents, service.depositValue / 100);
+      db.insert(depositPayments)
+        .values({
+          clinicId: clinic.id,
+          appointmentId: appointment.id,
+          amountCents,
+          status: 'paid',
+          providerReference: `fake_ch_${random.int(10 ** 9, 10 ** 10 - 1)}`,
+          refundableHours: seed.depositRefundableHours ?? 24,
+          paidAt: appointmentCreatedAt,
+          createdAt: appointmentCreatedAt,
+        })
+        .run();
+    }
+
     created++;
   }
 
