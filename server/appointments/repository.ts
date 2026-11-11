@@ -10,12 +10,22 @@ import {
   type AppointmentStatus,
   type DepositStatus,
 } from '../db/schema.js';
-import { formatDateTime } from '../lib/dates.js';
+import { addDays, formatDateTime, zonedTimeToUtc } from '../lib/dates.js';
 
 export interface AppointmentFilters {
   scope?: 'upcoming' | 'past';
   status?: AppointmentStatus;
   search?: string;
+  /**
+   * Inclusive lower bound as a YYYY-MM-DD calendar date in the clinic's time
+   * zone. When set (together with `to` or alone) it replaces `scope`.
+   */
+  from?: string;
+  /**
+   * Inclusive upper bound as a YYYY-MM-DD calendar date in the clinic's time
+   * zone; the whole local day is included. When set it replaces `scope`.
+   */
+  to?: string;
   limit?: number;
   now?: Date;
   /** Time zone the appointment times are labelled in; the clinic's own time zone. */
@@ -97,7 +107,16 @@ function toListItem(row: AppointmentListRow, timeZone: string): AppointmentListI
 export function listAppointments(clinicId: number, filters: AppointmentFilters): AppointmentListItem[] {
   const now = filters.now ?? new Date();
   const conditions: SQL[] = [eq(appointments.clinicId, clinicId)];
-  if (filters.scope === 'upcoming') {
+  const hasRange = Boolean(filters.from || filters.to);
+  if (hasRange) {
+    // Calendar dates in the clinic's own time zone; `to` includes the whole local day.
+    if (filters.from) {
+      conditions.push(gte(appointments.startsAt, zonedTimeToUtc(filters.from, '00:00', filters.timeZone)));
+    }
+    if (filters.to) {
+      conditions.push(lt(appointments.startsAt, zonedTimeToUtc(addDays(filters.to, 1), '00:00', filters.timeZone)));
+    }
+  } else if (filters.scope === 'upcoming') {
     conditions.push(gte(appointments.startsAt, now));
   } else if (filters.scope === 'past') {
     conditions.push(lt(appointments.startsAt, now));
@@ -149,7 +168,7 @@ export function listAppointments(clinicId: number, filters: AppointmentFilters):
     .innerJoin(customers, eq(customers.id, appointments.customerId))
     .leftJoin(depositPayments, eq(depositPayments.appointmentId, appointments.id))
     .where(and(...conditions))
-    .orderBy(filters.scope === 'past' ? desc(appointments.startsAt) : asc(appointments.startsAt));
+    .orderBy(filters.scope === 'past' && !hasRange ? desc(appointments.startsAt) : asc(appointments.startsAt));
   const rows = filters.limit ? query.limit(filters.limit).all() : query.all();
 
   return rows.map((row) => toListItem(row, filters.timeZone));

@@ -8,15 +8,28 @@ import { APPOINTMENT_STATUSES, appointments, customers, services, staffMembers }
 import { HttpError, notFound } from '../http/errors.js';
 import { parseId } from '../http/params.js';
 import { addMinutes, zonedTimeToUtc } from '../lib/dates.js';
+import { toCsv } from './csv.js';
 import { findAppointment, findBusyIntervals, listAppointments, overlaps } from './repository.js';
 
 export const appointmentsRouter = Router();
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter the date as YYYY-MM-DD');
 
 const listQuerySchema = z.object({
   scope: z.enum(['upcoming', 'past']).optional(),
   status: z.enum(APPOINTMENT_STATUSES).optional(),
   q: z.string().max(100).optional(),
+  from: isoDate.optional(),
+  to: isoDate.optional(),
 });
+
+function parseListFilters(query: unknown) {
+  const { scope, status, q, from, to } = listQuerySchema.parse(query);
+  if (from && to && from > to) {
+    throw new HttpError(400, 'From date must be before To date');
+  }
+  return { scope, status, search: q, from, to };
+}
 
 const createSchema = z.object({
   customerId: z.number().int().positive(),
@@ -33,10 +46,21 @@ const updateSchema = z.object({
 });
 
 appointmentsRouter.get('/', (req, res) => {
-  const { scope, status, q } = listQuerySchema.parse(req.query);
   const clinic = getClinic(clinicIdOf(req));
-  const items = listAppointments(clinic.id, { scope, status, search: q, timeZone: clinic.timezone });
+  const items = listAppointments(clinic.id, { ...parseListFilters(req.query), timeZone: clinic.timezone });
   res.json({ appointments: items });
+});
+
+appointmentsRouter.get('/export', (req, res) => {
+  const clinic = getClinic(clinicIdOf(req));
+  const filters = parseListFilters(req.query);
+  const items = listAppointments(clinic.id, { ...filters, timeZone: clinic.timezone });
+  const csv = toCsv(items, clinic.timezone);
+
+  const range = [filters.from, filters.to].filter(Boolean).join('_') || new Date().toISOString().slice(0, 10);
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="appointments-${range}.csv"`);
+  res.send(csv);
 });
 
 appointmentsRouter.post('/', (req, res) => {
