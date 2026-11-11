@@ -6,6 +6,7 @@ import {
   appointments,
   clinics,
   customers,
+  depositPayments,
   passwordResetTokens,
   planOrders,
   services,
@@ -20,6 +21,7 @@ export const TEST_PASSWORD = 'correct horse battery';
 export function resetDatabase(): void {
   db.delete(sessions).run();
   db.delete(passwordResetTokens).run();
+  db.delete(depositPayments).run();
   db.delete(appointments).run();
   db.delete(planOrders).run();
   db.delete(customers).run();
