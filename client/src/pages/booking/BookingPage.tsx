@@ -95,6 +95,13 @@ export function BookingPage() {
 
   const service = data.services.find((candidate) => candidate.id === serviceId);
   const slots = availability.data?.slots ?? [];
+  const selectedDate = new Date(`${date}T00:00:00.000Z`);
+  const selectedIsoWeekday = selectedDate.getUTCDay() || 7;
+  const selectedWeekday = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'long',
+    timeZone: 'UTC',
+  }).format(selectedDate);
+  const clinicIsClosed = !data.clinic.openDays.includes(selectedIsoWeekday);
 
   return (
     <div className={styles.page}>
@@ -178,7 +185,11 @@ export function BookingPage() {
 
             {availability.loading && <p className="muted">Finding free times…</p>}
             {!availability.loading && slots.length === 0 && (
-              <p className="muted">No free times on this day. Try another date.</p>
+              <p className="muted">
+                {clinicIsClosed
+                  ? `${data.clinic.name} is closed on ${selectedWeekday}s. Pick another date.`
+                  : 'No free times on this day. Try another date.'}
+              </p>
             )}
             {slots.length > 0 && (
               <div className={styles.slots} role="radiogroup" aria-label="Available times">

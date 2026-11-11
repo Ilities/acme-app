@@ -36,12 +36,24 @@ function bookingPage(deposit: Deposit) {
 
 const slots = [{ startsAt: '2026-11-20T07:00:00.000Z', label: '09:00', staffIds: [2] }];
 
-function availabilityRoute() {
+function availabilityRoute(date = todayIso(), availableSlots = slots) {
   return {
-    [`GET /api/public/clinics/test-clinic/availability?serviceId=1&date=${todayIso()}`]: () => ({
-      body: { date: todayIso(), slots },
+    [`GET /api/public/clinics/test-clinic/availability?serviceId=1&date=${date}`]: () => ({
+      body: { date, slots: availableSlots },
     }),
   };
+}
+
+function nextDateMatching(isOpenDay: (isoWeekday: number) => boolean) {
+  const date = new Date(`${todayIso()}T00:00:00.000Z`);
+  for (let days = 1; days <= 7; days += 1) {
+    date.setUTCDate(date.getUTCDate() + 1);
+    const isoWeekday = date.getUTCDay() || 7;
+    if (isOpenDay(isoWeekday)) {
+      return date.toISOString().slice(0, 10);
+    }
+  }
+  throw new Error('No matching date found');
 }
 
 function renderBooking() {
@@ -66,6 +78,38 @@ function fillDetails() {
 }
 
 describe('BookingPage', () => {
+  it('explains when the clinic is closed on the selected day', async () => {
+    const saturday = nextDateMatching((weekday) => weekday === 6);
+    mockFetch({
+      'GET /api/public/clinics/test-clinic': () => ({ body: bookingPage(null) }),
+      ...availabilityRoute(),
+      ...availabilityRoute(saturday, []),
+    });
+    renderBooking();
+    fireEvent.click(await screen.findByRole('radio', { name: /Assessment/ }));
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: saturday } });
+
+    expect(
+      await screen.findByText('Test Clinic is closed on Saturdays. Pick another date.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No free times on this day. Try another date.')).not.toBeInTheDocument();
+  });
+
+  it('keeps the no free times message for a fully booked open day', async () => {
+    const weekday = nextDateMatching((day) => day >= 1 && day <= 5);
+    mockFetch({
+      'GET /api/public/clinics/test-clinic': () => ({ body: bookingPage(null) }),
+      ...availabilityRoute(),
+      ...availabilityRoute(weekday, []),
+    });
+    renderBooking();
+    fireEvent.click(await screen.findByRole('radio', { name: /Assessment/ }));
+    fireEvent.change(screen.getByLabelText('Date'), { target: { value: weekday } });
+
+    expect(await screen.findByText('No free times on this day. Try another date.')).toBeInTheDocument();
+    expect(screen.queryByText(/Test Clinic is closed/)).not.toBeInTheDocument();
+  });
+
   it('collects a card and pays the deposit when the service asks for one', async () => {
     const fetchSpy = mockFetch({
       'GET /api/public/clinics/test-clinic': () => ({
