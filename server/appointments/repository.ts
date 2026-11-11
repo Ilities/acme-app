@@ -127,12 +127,19 @@ export function listAppointments(clinicId: number, filters: AppointmentFilters):
 
   const search = filters.search?.trim().toLowerCase();
   if (search) {
+    const phoneSearch = search.replace(/\s/g, '');
     const matchingCustomerIds = db
-      .select({ id: customers.id, name: customers.name })
+      .select({ id: customers.id, name: customers.name, email: customers.email, phone: customers.phone })
       .from(customers)
       .where(eq(customers.clinicId, clinicId))
       .all()
-      .filter((customer) => customer.name.toLowerCase().includes(search))
+      .filter((customer) => {
+        const matchesName = customer.name.toLowerCase().includes(search);
+        const matchesEmail = customer.email.toLowerCase().includes(search);
+        const matchesPhone =
+          phoneSearch.length > 0 && (customer.phone ?? '').replace(/\s/g, '').includes(phoneSearch);
+        return matchesName || matchesEmail || matchesPhone;
+      })
       .map((customer) => customer.id);
 
     if (matchingCustomerIds.length === 0) {
