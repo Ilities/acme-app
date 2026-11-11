@@ -141,6 +141,16 @@ export const appointments = sqliteTable(
   (table) => [
     index('appointments_clinic_starts_idx').on(table.clinicId, table.startsAt),
     index('appointments_staff_starts_idx').on(table.staffId, table.startsAt),
+    index('appointments_clinic_status_starts_idx').on(
+      table.clinicId,
+      table.status,
+      table.startsAt,
+    ),
+    index('appointments_clinic_customer_starts_idx').on(
+      table.clinicId,
+      table.customerId,
+      table.startsAt,
+    ),
   ],
 );
 

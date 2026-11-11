@@ -1,0 +1,2 @@
+CREATE INDEX `appointments_clinic_status_starts_idx` ON `appointments` (`clinic_id`,`status`,`starts_at`);--> statement-breakpoint
+CREATE INDEX `appointments_clinic_customer_starts_idx` ON `appointments` (`clinic_id`,`customer_id`,`starts_at`);

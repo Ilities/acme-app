@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { db } from '../db/client.js';
-import { appointments } from '../db/schema.js';
+import { appointments, clinics, customers, depositPayments } from '../db/schema.js';
 import { addMinutes } from '../lib/dates.js';
 import { createClinicFixture, signedInAgent } from '../test/fixtures.js';
 
@@ -135,5 +135,182 @@ describe('appointments routes', () => {
       .expect(200);
 
     expect(response.body.appointment.status).toBe('cancelled');
+  });
+
+  it('lists past appointments newest first', async () => {
+    const { clinic, user, staff, service, customer } = await createClinicFixture();
+    const older = addMinutes(new Date(), -2 * 24 * 60);
+    const newer = addMinutes(new Date(), -24 * 60);
+    for (const startsAt of [older, newer]) {
+      db.insert(appointments)
+        .values({
+          clinicId: clinic.id,
+          serviceId: service.id,
+          staffId: staff.id,
+          customerId: customer.id,
+          startsAt,
+          endsAt: addMinutes(startsAt, 60),
+          source: 'staff',
+          status: 'completed',
+        })
+        .run();
+    }
+
+    const agent = await signedInAgent(user.email);
+    const response = await agent.get('/api/appointments?scope=past').expect(200);
+
+    expect(response.body.appointments.map((item: { startsAt: string }) => item.startsAt)).toEqual([
+      newer.toISOString(),
+      older.toISOString(),
+    ]);
+  });
+
+  it('filters by customer name as a case-insensitive substring', async () => {
+    const { clinic, user, staff, service, customer } = await createClinicFixture();
+    const accented = db
+      .insert(customers)
+      .values({ clinicId: clinic.id, name: 'Älli Öhman', email: 'alli@example.com' })
+      .returning()
+      .get();
+    const startsAt = addMinutes(new Date(), 24 * 60);
+    for (const customerId of [customer.id, accented.id]) {
+      db.insert(appointments)
+        .values({
+          clinicId: clinic.id,
+          serviceId: service.id,
+          staffId: staff.id,
+          customerId,
+          startsAt,
+          endsAt: addMinutes(startsAt, 60),
+          source: 'online',
+        })
+        .run();
+    }
+
+    const agent = await signedInAgent(user.email);
+    const response = await agent
+      .get('/api/appointments')
+      .query({ scope: 'upcoming', q: 'ÄLLI' })
+      .expect(200);
+
+    expect(response.body.appointments).toHaveLength(1);
+    expect(response.body.appointments[0].customer.name).toBe('Älli Öhman');
+  });
+
+  it('treats LIKE wildcards in the search as literal characters', async () => {
+    const { clinic, user, staff, service, customer } = await createClinicFixture();
+    const percent = db
+      .insert(customers)
+      .values({ clinicId: clinic.id, name: 'Percent % Customer', email: 'percent@example.com' })
+      .returning()
+      .get();
+    const startsAt = addMinutes(new Date(), 24 * 60);
+    for (const customerId of [customer.id, percent.id]) {
+      db.insert(appointments)
+        .values({
+          clinicId: clinic.id,
+          serviceId: service.id,
+          staffId: staff.id,
+          customerId,
+          startsAt: addMinutes(startsAt, 60),
+          endsAt: addMinutes(startsAt, 120),
+          source: 'online',
+        })
+        .run();
+    }
+
+    const agent = await signedInAgent(user.email);
+    const response = await agent
+      .get('/api/appointments')
+      .query({ scope: 'upcoming', q: '%' })
+      .expect(200);
+
+    expect(response.body.appointments).toHaveLength(1);
+    expect(response.body.appointments[0].customer.name).toBe('Percent % Customer');
+  });
+
+  it('returns deposits when present and null when absent', async () => {
+    const { clinic, user, staff, service, customer } = await createClinicFixture();
+    const startsAt = addMinutes(new Date(), 24 * 60);
+    const withDeposit = db
+      .insert(appointments)
+      .values({
+        clinicId: clinic.id,
+        serviceId: service.id,
+        staffId: staff.id,
+        customerId: customer.id,
+        startsAt,
+        endsAt: addMinutes(startsAt, 60),
+        source: 'online',
+      })
+      .returning()
+      .get();
+    db.insert(appointments)
+      .values({
+        clinicId: clinic.id,
+        serviceId: service.id,
+        staffId: staff.id,
+        customerId: customer.id,
+        startsAt: addMinutes(startsAt, 120),
+        endsAt: addMinutes(startsAt, 180),
+        source: 'staff',
+      })
+      .run();
+    const paidAt = new Date('2027-01-01T10:00:00.000Z');
+    db.insert(depositPayments)
+      .values({
+        clinicId: clinic.id,
+        appointmentId: withDeposit.id,
+        amountCents: 2500,
+        status: 'paid',
+        refundableHours: 24,
+        paidAt,
+      })
+      .run();
+
+    const agent = await signedInAgent(user.email);
+    const response = await agent.get('/api/appointments?scope=upcoming').expect(200);
+
+    expect(response.body.appointments).toHaveLength(2);
+    expect(response.body.appointments[0].deposit).toMatchObject({
+      amountCents: 2500,
+      status: 'paid',
+      paidAt: paidAt.toISOString(),
+    });
+    expect(response.body.appointments[1].deposit).toBeNull();
+  });
+
+  it('does not return appointments from another clinic', async () => {
+    const { clinic, user, staff, service, customer } = await createClinicFixture();
+    const otherClinic = db
+      .insert(clinics)
+      .values({
+        name: 'Other Clinic',
+        slug: 'other-clinic',
+        email: 'hello@otherclinic.example',
+        city: 'Helsinki',
+        country: 'FI',
+      })
+      .returning()
+      .get();
+    const startsAt = addMinutes(new Date(), 24 * 60);
+    for (const clinicId of [clinic.id, otherClinic.id]) {
+      db.insert(appointments)
+        .values({
+          clinicId,
+          serviceId: service.id,
+          staffId: staff.id,
+          customerId: customer.id,
+          startsAt,
+          endsAt: addMinutes(startsAt, 60),
+          source: 'online',
+        })
+        .run();
+    }
+
+    const agent = await signedInAgent(user.email);
+    const response = await agent.get('/api/appointments?scope=upcoming').expect(200);
+
+    expect(response.body.appointments).toHaveLength(1);
   });
 });

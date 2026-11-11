@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lt, ne, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lt, ne, type SQL } from 'drizzle-orm';
 import { db } from '../db/client.js';
 import {
   appointments,
@@ -8,11 +8,7 @@ import {
   staffMembers,
   type Appointment,
   type AppointmentStatus,
-  type Customer,
-  type DepositPayment,
   type DepositStatus,
-  type Service,
-  type StaffMember,
 } from '../db/schema.js';
 import { formatDateTime } from '../lib/dates.js';
 
@@ -48,40 +44,53 @@ export interface BusyInterval {
   endsAt: Date;
 }
 
-function toListItem(
-  appointment: Appointment,
-  service: Service,
-  staff: StaffMember,
-  customer: Customer,
-  timeZone: string,
-  deposit: DepositPayment | undefined,
-): AppointmentListItem {
+interface AppointmentListRow {
+  id: number;
+  startsAt: Date;
+  endsAt: Date;
+  status: AppointmentStatus;
+  source: 'online' | 'staff';
+  notes: string | null;
+  serviceId: number;
+  serviceName: string;
+  servicePriceCents: number;
+  staffId: number;
+  staffName: string;
+  customerId: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string | null;
+  depositAmountCents: number | null;
+  depositStatus: DepositStatus | null;
+  depositPaidAt: Date | null;
+}
+
+function toListItem(row: AppointmentListRow, timeZone: string): AppointmentListItem {
   return {
-    id: appointment.id,
-    startsAt: appointment.startsAt.toISOString(),
-    endsAt: appointment.endsAt.toISOString(),
-    timeLabel: formatDateTime(appointment.startsAt, timeZone),
-    durationMinutes: Math.round(
-      (appointment.endsAt.getTime() - appointment.startsAt.getTime()) / 60_000,
-    ),
-    status: appointment.status,
-    source: appointment.source,
-    notes: appointment.notes,
-    service: { id: service.id, name: service.name, priceCents: service.priceCents },
-    staff: { id: staff.id, name: staff.name },
+    id: row.id,
+    startsAt: row.startsAt.toISOString(),
+    endsAt: row.endsAt.toISOString(),
+    timeLabel: formatDateTime(row.startsAt, timeZone),
+    durationMinutes: Math.round((row.endsAt.getTime() - row.startsAt.getTime()) / 60_000),
+    status: row.status,
+    source: row.source,
+    notes: row.notes,
+    service: { id: row.serviceId, name: row.serviceName, priceCents: row.servicePriceCents },
+    staff: { id: row.staffId, name: row.staffName },
     customer: {
-      id: customer.id,
-      name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
+      id: row.customerId,
+      name: row.customerName,
+      email: row.customerEmail,
+      phone: row.customerPhone,
     },
-    deposit: deposit
-      ? {
-          amountCents: deposit.amountCents,
-          status: deposit.status,
-          paidAt: deposit.paidAt ? deposit.paidAt.toISOString() : null,
-        }
-      : null,
+    deposit:
+      row.depositAmountCents === null
+        ? null
+        : {
+            amountCents: row.depositAmountCents,
+            status: row.depositStatus as DepositStatus,
+            paidAt: row.depositPaidAt ? row.depositPaidAt.toISOString() : null,
+          },
   };
 }
 
@@ -97,35 +106,53 @@ export function listAppointments(clinicId: number, filters: AppointmentFilters):
     conditions.push(eq(appointments.status, filters.status));
   }
 
+  const search = filters.search?.trim().toLowerCase();
+  if (search) {
+    const matchingCustomerIds = db
+      .select({ id: customers.id, name: customers.name })
+      .from(customers)
+      .where(eq(customers.clinicId, clinicId))
+      .all()
+      .filter((customer) => customer.name.toLowerCase().includes(search))
+      .map((customer) => customer.id);
+
+    if (matchingCustomerIds.length === 0) {
+      return [];
+    }
+    conditions.push(inArray(appointments.customerId, matchingCustomerIds));
+  }
+
   const query = db
-    .select()
+    .select({
+      id: appointments.id,
+      startsAt: appointments.startsAt,
+      endsAt: appointments.endsAt,
+      status: appointments.status,
+      source: appointments.source,
+      notes: appointments.notes,
+      serviceId: services.id,
+      serviceName: services.name,
+      servicePriceCents: services.priceCents,
+      staffId: staffMembers.id,
+      staffName: staffMembers.name,
+      customerId: customers.id,
+      customerName: customers.name,
+      customerEmail: customers.email,
+      customerPhone: customers.phone,
+      depositAmountCents: depositPayments.amountCents,
+      depositStatus: depositPayments.status,
+      depositPaidAt: depositPayments.paidAt,
+    })
     .from(appointments)
+    .innerJoin(services, eq(services.id, appointments.serviceId))
+    .innerJoin(staffMembers, eq(staffMembers.id, appointments.staffId))
+    .innerJoin(customers, eq(customers.id, appointments.customerId))
+    .leftJoin(depositPayments, eq(depositPayments.appointmentId, appointments.id))
     .where(and(...conditions))
     .orderBy(filters.scope === 'past' ? desc(appointments.startsAt) : asc(appointments.startsAt));
   const rows = filters.limit ? query.limit(filters.limit).all() : query.all();
 
-  const search = filters.search?.trim().toLowerCase();
-  const items: AppointmentListItem[] = [];
-
-  for (const row of rows) {
-    const service = db.select().from(services).where(eq(services.id, row.serviceId)).get();
-    const staff = db.select().from(staffMembers).where(eq(staffMembers.id, row.staffId)).get();
-    const customer = db.select().from(customers).where(eq(customers.id, row.customerId)).get();
-    if (!service || !staff || !customer) {
-      continue;
-    }
-    if (search && !customer.name.toLowerCase().includes(search)) {
-      continue;
-    }
-    const deposit = db
-      .select()
-      .from(depositPayments)
-      .where(eq(depositPayments.appointmentId, row.id))
-      .get();
-    items.push(toListItem(row, service, staff, customer, filters.timeZone, deposit));
-  }
-
-  return items;
+  return rows.map((row) => toListItem(row, filters.timeZone));
 }
 
 export function findAppointment(clinicId: number, id: number): Appointment | undefined {
