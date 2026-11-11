@@ -8,11 +8,11 @@ import { useApi } from '../lib/useApi';
 import styles from './SettingsPage.module.css';
 
 const TIMEZONES = [
-  { value: 'Europe/Helsinki', label: 'Helsinki (EET)' },
-  { value: 'Europe/Stockholm', label: 'Stockholm (CET)' },
-  { value: 'Europe/Oslo', label: 'Oslo (CET)' },
-  { value: 'Europe/Copenhagen', label: 'Copenhagen (CET)' },
-  { value: 'Europe/Tallinn', label: 'Tallinn (EET)' },
+  { value: 'Europe/Helsinki', label: 'Helsinki' },
+  { value: 'Europe/Stockholm', label: 'Stockholm' },
+  { value: 'Europe/Oslo', label: 'Oslo' },
+  { value: 'Europe/Copenhagen', label: 'Copenhagen' },
+  { value: 'Europe/Tallinn', label: 'Tallinn' },
 ];
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
