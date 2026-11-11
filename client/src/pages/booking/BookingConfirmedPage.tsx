@@ -1,6 +1,6 @@
 import { Link, Navigate, useLocation, useParams } from 'react-router-dom';
 import type { BookingConfirmation } from '../../api/types';
-import { formatMoney } from '../../lib/format';
+import { formatClinicAddress, formatMoney } from '../../lib/format';
 import styles from './BookingPage.module.css';
 
 export function BookingConfirmedPage() {
@@ -20,6 +20,10 @@ export function BookingConfirmedPage() {
           {booking.serviceName} with {booking.staffName} at {booking.clinicName}
         </p>
         <p className={styles.serviceName}>{booking.when}</p>
+        <div className={styles.clinicDetails}>
+          <p>{formatClinicAddress(booking.clinicAddressLine, booking.clinicCity)}</p>
+          {booking.clinicPhone && <p>Phone: {booking.clinicPhone}</p>}
+        </div>
         {booking.depositPaidCents != null && (
           <p className="muted">
             Deposit of {formatMoney(booking.depositPaidCents)} paid — it counts towards the price of

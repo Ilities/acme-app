@@ -78,6 +78,48 @@ describe('public booking routes', () => {
     });
   });
 
+  it('returns the clinic address and phone with the booking confirmation', async () => {
+    const { service } = await createClinicFixture({
+      addressLine: 'Fredrikinkatu 22',
+      phone: '+358 9 123 4567',
+    });
+    const app = createApp();
+    const startsAt = await firstSlot(app, service.id, bookableDate());
+
+    const response = await request(app)
+      .post('/api/public/clinics/test-clinic/bookings')
+      .send({
+        serviceId: service.id,
+        startsAt,
+        customer: { name: 'Maija Meikäläinen', email: 'maija@example.com' },
+      })
+      .expect(201);
+
+    expect(response.body.booking).toMatchObject({
+      clinicAddressLine: 'Fredrikinkatu 22',
+      clinicCity: 'Helsinki',
+      clinicPhone: '+358 9 123 4567',
+    });
+  });
+
+  it('leaves the phone empty when the clinic has none saved', async () => {
+    const { service } = await createClinicFixture({ addressLine: 'Fredrikinkatu 22' });
+    const app = createApp();
+    const startsAt = await firstSlot(app, service.id, bookableDate());
+
+    const response = await request(app)
+      .post('/api/public/clinics/test-clinic/bookings')
+      .send({
+        serviceId: service.id,
+        startsAt,
+        customer: { name: 'Maija Meikäläinen', email: 'maija@example.com' },
+      })
+      .expect(201);
+
+    expect(response.body.booking.clinicPhone).toBeNull();
+    expect(response.body.booking.clinicAddressLine).toBe('Fredrikinkatu 22');
+  });
+
   it('rejects a time that is already taken', async () => {
     const { service } = await createClinicFixture();
     const app = createApp();
