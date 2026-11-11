@@ -161,6 +161,23 @@ export const planOrders = sqliteTable(
   (table) => [index('plan_orders_clinic_idx').on(table.clinicId)],
 );
 
+/** Notes by Acme's admin team on a plan order. Clinics never see them. */
+export const orderNotes = sqliteTable(
+  'order_notes',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    orderId: integer('order_id')
+      .notNull()
+      .references(() => planOrders.id, { onDelete: 'cascade' }),
+    authorId: integer('author_id')
+      .notNull()
+      .references(() => users.id),
+    body: text('body').notNull(),
+    createdAt: createdAt(),
+  },
+  (table) => [index('order_notes_order_idx').on(table.orderId, table.createdAt)],
+);
+
 export type Clinic = typeof clinics.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type StaffMember = typeof staffMembers.$inferSelect;
@@ -168,6 +185,7 @@ export type Service = typeof services.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
 export type PlanOrder = typeof planOrders.$inferSelect;
+export type OrderNote = typeof orderNotes.$inferSelect;
 export type PlanId = (typeof PLAN_IDS)[number];
 export type UserRole = (typeof USER_ROLES)[number];
 export type AppointmentStatus = (typeof APPOINTMENT_STATUSES)[number];
