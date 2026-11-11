@@ -71,7 +71,11 @@ export function AppointmentsPage() {
           ))}
         </div>
         <div className={styles.filters}>
+          <label htmlFor="appointment-search" className="visually-hidden">
+            Search appointments by customer name
+          </label>
           <input
+            id="appointment-search"
             type="search"
             className="input"
             placeholder="Search by customer name"
