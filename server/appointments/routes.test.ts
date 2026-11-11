@@ -34,6 +34,52 @@ describe('appointments routes', () => {
     });
   });
 
+  it('labels appointment times in the clinic time zone (Helsinki)', async () => {
+    const { clinic, user, staff, service, customer } = await createClinicFixture();
+    // 08:00 UTC is 10:00 in Europe/Helsinki.
+    const startsAt = new Date('2027-01-12T08:00:00.000Z');
+    db.insert(appointments)
+      .values({
+        clinicId: clinic.id,
+        serviceId: service.id,
+        staffId: staff.id,
+        customerId: customer.id,
+        startsAt,
+        endsAt: addMinutes(startsAt, 60),
+        source: 'online',
+      })
+      .run();
+
+    const agent = await signedInAgent(user.email);
+    const response = await agent.get('/api/appointments?scope=upcoming').expect(200);
+
+    expect(response.body.appointments[0].timeLabel).toBe('Tue 12 Jan, 10:00');
+  });
+
+  it('labels appointment times in the clinic time zone (Stockholm)', async () => {
+    const { clinic, user, staff, service, customer } = await createClinicFixture({
+      timezone: 'Europe/Stockholm',
+    });
+    // 08:00 UTC is 09:00 in Europe/Stockholm.
+    const startsAt = new Date('2027-01-12T08:00:00.000Z');
+    db.insert(appointments)
+      .values({
+        clinicId: clinic.id,
+        serviceId: service.id,
+        staffId: staff.id,
+        customerId: customer.id,
+        startsAt,
+        endsAt: addMinutes(startsAt, 60),
+        source: 'online',
+      })
+      .run();
+
+    const agent = await signedInAgent(user.email);
+    const response = await agent.get('/api/appointments?scope=upcoming').expect(200);
+
+    expect(response.body.appointments[0].timeLabel).toBe('Tue 12 Jan, 09:00');
+  });
+
   it('creates an appointment in clinic local time', async () => {
     const { user, staff, service, customer } = await createClinicFixture();
     const agent = await signedInAgent(user.email);
