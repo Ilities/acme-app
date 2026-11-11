@@ -133,6 +133,9 @@ export const appointments = sqliteTable(
       .references(() => customers.id),
     startsAt: integer('starts_at', { mode: 'timestamp_ms' }).notNull(),
     endsAt: integer('ends_at', { mode: 'timestamp_ms' }).notNull(),
+    // The service's price when this booking was made. Owners edit the one price
+    // on a service, so past bookings must keep this copy, not follow it.
+    priceCents: integer('price_cents').notNull(),
     status: text('status', { enum: APPOINTMENT_STATUSES }).notNull().default('booked'),
     source: text('source', { enum: APPOINTMENT_SOURCES }).notNull(),
     notes: text('notes'),

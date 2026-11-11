@@ -86,7 +86,7 @@ export function toCsv(items: AppointmentListItem[], timeZone: string): string {
         item.service.name,
         item.staff.name,
         STATUS_LABELS[item.status],
-        euros(item.service.priceCents),
+        euros(item.priceCents),
         item.deposit?.status === 'paid' ? euros(item.deposit.amountCents) : '',
         item.notes,
       ]

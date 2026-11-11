@@ -4,7 +4,7 @@ import { listAppointments } from '../appointments/repository.js';
 import { clinicIdOf } from '../auth/middleware.js';
 import { getClinic } from '../clinics/repository.js';
 import { db } from '../db/client.js';
-import { appointments, services } from '../db/schema.js';
+import { appointments } from '../db/schema.js';
 import { addDays, toLocalDateString, zonedTimeToUtc } from '../lib/dates.js';
 
 export const dashboardRouter = Router();
@@ -37,9 +37,8 @@ dashboardRouter.get('/', (req, res) => {
   const monthStart = zonedTimeToUtc(`${today.slice(0, 8)}01`, '00:00', clinic.timezone);
 
   const completedThisMonth = db
-    .select({ priceCents: services.priceCents })
+    .select({ priceCents: appointments.priceCents })
     .from(appointments)
-    .innerJoin(services, eq(services.id, appointments.serviceId))
     .where(
       and(
         eq(appointments.clinicId, clinicId),

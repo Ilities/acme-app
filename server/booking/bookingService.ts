@@ -204,6 +204,7 @@ export async function createBooking(
         customerId: customer.id,
         startsAt: slot.startsAt,
         endsAt: slot.endsAt,
+        priceCents: service.priceCents,
         source: 'online',
       })
       .returning()

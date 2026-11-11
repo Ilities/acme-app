@@ -65,10 +65,12 @@ export interface AppointmentListItem {
   endsAt: string;
   timeLabel: string;
   durationMinutes: number;
+  /** What this booking was worth when it was made; later price edits don't change it. */
+  priceCents: number;
   status: AppointmentStatus;
   source: 'online' | 'staff';
   notes: string | null;
-  service: { id: number; name: string; priceCents: number };
+  service: { id: number; name: string };
   staff: { id: number; name: string };
   customer: { id: number; name: string; email: string; phone: string | null };
   deposit: { amountCents: number; status: DepositStatus; paidAt: string | null } | null;

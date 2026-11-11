@@ -19,6 +19,7 @@ describe('appointments routes', () => {
         customerId: customer.id,
         startsAt,
         endsAt: addMinutes(startsAt, 60),
+        priceCents: service.priceCents,
         source: 'online',
       })
       .run();
@@ -49,6 +50,7 @@ describe('appointments routes', () => {
         customerId: customer.id,
         startsAt,
         endsAt: addMinutes(startsAt, 60),
+        priceCents: service.priceCents,
         source: 'online',
       })
       .run();
@@ -73,6 +75,7 @@ describe('appointments routes', () => {
         customerId: customer.id,
         startsAt,
         endsAt: addMinutes(startsAt, 60),
+        priceCents: service.priceCents,
         source: 'online',
       })
       .run();
@@ -153,6 +156,7 @@ describe('appointments routes', () => {
           customerId: customer.id,
           startsAt,
           endsAt: addMinutes(startsAt, 60),
+          priceCents: service.priceCents,
           source: 'staff',
           status: 'completed',
         })
@@ -185,6 +189,7 @@ describe('appointments routes', () => {
           customerId,
           startsAt,
           endsAt: addMinutes(startsAt, 60),
+          priceCents: service.priceCents,
           source: 'online',
         })
         .run();
@@ -248,6 +253,7 @@ describe('appointments routes', () => {
           customerId,
           startsAt: addMinutes(startsAt, 60),
           endsAt: addMinutes(startsAt, 120),
+          priceCents: service.priceCents,
           source: 'online',
         })
         .run();
@@ -275,6 +281,7 @@ describe('appointments routes', () => {
         customerId: customer.id,
         startsAt,
         endsAt: addMinutes(startsAt, 60),
+        priceCents: service.priceCents,
         source: 'online',
       })
       .returning()
@@ -287,6 +294,7 @@ describe('appointments routes', () => {
         customerId: customer.id,
         startsAt: addMinutes(startsAt, 120),
         endsAt: addMinutes(startsAt, 180),
+        priceCents: service.priceCents,
         source: 'staff',
       })
       .run();
@@ -337,6 +345,7 @@ describe('appointments routes', () => {
           customerId: customer.id,
           startsAt,
           endsAt: addMinutes(startsAt, 60),
+          priceCents: service.priceCents,
           source: 'online',
         })
         .run();
@@ -365,6 +374,7 @@ function insertAppointment(
       customerId,
       startsAt: new Date(startsAt),
       endsAt: addMinutes(new Date(startsAt), 60),
+      priceCents: 8000, // the fixture service's price
       source: 'online',
       ...overrides,
     })
@@ -494,6 +504,7 @@ describe('appointments export', () => {
         customerId: customer.id,
         startsAt: new Date('2027-01-12T08:00:00.000Z'), // 10:00 in Helsinki
         endsAt: new Date('2027-01-12T09:00:00.000Z'),
+        priceCents: service.priceCents,
         source: 'online',
       })
       .returning()
