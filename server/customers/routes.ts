@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { and, asc, eq, like, or } from 'drizzle-orm';
+import { and, asc, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { clinicIdOf } from '../auth/middleware.js';
 import { normalizeEmail } from '../auth/users.js';
@@ -18,15 +18,18 @@ const customerSchema = z.object({
 
 customersRouter.get('/', (req, res) => {
   const clinicId = clinicIdOf(req);
-  const search = queryString(req.query.q);
-  const filter = search
-    ? and(
-        eq(customers.clinicId, clinicId),
-        or(like(customers.name, `%${search}%`), like(customers.email, `%${search}%`)),
-      )
-    : eq(customers.clinicId, clinicId);
-
-  const rows = db.select().from(customers).where(filter).orderBy(asc(customers.name)).all();
+  const search = queryString(req.query.q)?.toLowerCase() ?? '';
+  const rows = db
+    .select()
+    .from(customers)
+    .where(eq(customers.clinicId, clinicId))
+    .orderBy(asc(customers.name))
+    .all()
+    .filter((customer) =>
+      search
+        ? customer.name.toLowerCase().includes(search) || customer.email.toLowerCase().includes(search)
+        : true,
+    );
   res.json({ customers: rows });
 });
 
