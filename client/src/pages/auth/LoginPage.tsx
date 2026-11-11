@@ -52,6 +52,7 @@ export function LoginPage() {
           type="email"
           name="email"
           autoComplete="username"
+          autoCapitalize="none"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required

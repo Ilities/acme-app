@@ -56,6 +56,7 @@ export function ForgotPasswordPage() {
           type="email"
           name="email"
           autoComplete="email"
+          autoCapitalize="none"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required

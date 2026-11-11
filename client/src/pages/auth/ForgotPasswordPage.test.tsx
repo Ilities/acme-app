@@ -19,7 +19,9 @@ describe('ForgotPasswordPage', () => {
   it('uses an email field so mobile keyboards do not autocapitalize', () => {
     renderForgotPassword();
 
-    expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email');
+    const email = screen.getByLabelText('Email');
+    expect(email).toHaveAttribute('type', 'email');
+    expect(email).toHaveAttribute('autocapitalize', 'none');
   });
 
   it('sends the reset request and shows the confirmation', async () => {

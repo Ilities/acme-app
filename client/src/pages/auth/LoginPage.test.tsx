@@ -51,6 +51,15 @@ describe('LoginPage', () => {
     );
   });
 
+  it('uses an email field without autocapitalization', () => {
+    mockFetch({ 'GET /api/auth/me': () => ({ body: { user: null } }) });
+    renderLogin();
+
+    const email = screen.getByLabelText('Email');
+    expect(email).toHaveAttribute('type', 'email');
+    expect(email).toHaveAttribute('autocapitalize', 'none');
+  });
+
   it('shows the error from the server', async () => {
     mockFetch({
       'GET /api/auth/me': () => ({ body: { user: null } }),

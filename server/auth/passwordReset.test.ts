@@ -34,6 +34,14 @@ describe('password reset', () => {
     expect(mailer.outbox.at(-1)).toMatchObject({ to: user.email });
   });
 
+  it('accepts the email with only the first letter capitalised', async () => {
+    const { user } = await createClinicFixture();
+
+    await expect(requestPasswordReset('Owner@testclinic.example')).resolves.toBe(true);
+
+    expect(mailer.outbox.at(-1)).toMatchObject({ to: user.email });
+  });
+
   it('does not send anything for an unknown email', async () => {
     await createClinicFixture();
 
