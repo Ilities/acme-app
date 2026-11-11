@@ -79,9 +79,8 @@ export function CheckoutPage() {
               onChange={(event) => setBillingName(event.target.value)}
               required
             />
-            <input
-              className="input"
-              placeholder="VAT ID (optional)"
+            <FormField
+              label="VAT ID (optional)"
               value={vatId}
               onChange={(event) => setVatId(event.target.value)}
             />

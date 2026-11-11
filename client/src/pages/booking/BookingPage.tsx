@@ -220,11 +220,10 @@ export function BookingPage() {
               onChange={(event) => setEmail(event.target.value)}
               required
             />
-            <input
+            <FormField
+              label="Phone (optional)"
               type="tel"
-              className="input"
               autoComplete="tel"
-              placeholder="Phone (optional)"
               value={phone}
               onChange={(event) => setPhone(event.target.value)}
             />
