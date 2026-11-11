@@ -257,6 +257,8 @@ export async function createBooking(
       to: email,
       customerName: request.customer.name,
       clinicName: clinic.name,
+      clinicEmail: clinic.email,
+      clinicPhone: clinic.phone,
       serviceName: service.name,
       staffName: staff.name,
       when,

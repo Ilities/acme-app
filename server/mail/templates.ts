@@ -28,12 +28,18 @@ export function bookingConfirmationEmail(input: {
   to: string;
   customerName: string;
   clinicName: string;
+  clinicEmail: string;
+  /** Shown alongside the email when the clinic has one saved. */
+  clinicPhone?: string | null;
   serviceName: string;
   staffName: string;
   when: string;
   /** Deposit charged at booking, if the service asked for one. */
   deposit?: { amountCents: number; refundableHours: number } | null;
 }): MailMessage {
+  const phone = input.clinicPhone?.trim();
+  const contactDetails = phone ? `${phone} or ${input.clinicEmail}` : input.clinicEmail;
+
   return {
     to: input.to,
     subject: `Your booking at ${input.clinicName}`,
@@ -55,7 +61,7 @@ export function bookingConfirmationEmail(input: {
           ]
         : []),
       '',
-      'If you need to change or cancel, please contact the clinic directly.',
+      `If you need to change or cancel, please contact the clinic directly at ${contactDetails}.`,
       '',
       `${input.clinicName} via Acme Book`,
     ].join('\n'),
