@@ -53,6 +53,7 @@ export function ForgotPasswordPage() {
         )}
         <FormField
           label="Email"
+          type="email"
           name="email"
           autoComplete="email"
           value={email}
