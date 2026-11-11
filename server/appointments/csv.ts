@@ -52,13 +52,23 @@ function euros(cents: number): string {
 }
 
 /**
+ * A plain phone number: digits, spaces, + and -. Clinic phone numbers look
+ * like "+358 40 123 4567" or "040-123 4567"; these pass through untouched so
+ * Excel does not show a guard apostrophe in the cell.
+ */
+const PLAIN_PHONE = /^[+\d][\d\s+-]*$/;
+
+/**
  * Neutralises spreadsheet formula injection (customer names, emails and notes
  * are partly entered on the public booking page), then quotes cells that
- * contain the separator, a quote or a line break.
+ * contain the separator, a quote or a line break. Anything that is not a
+ * plain phone number and starts with =, +, -, @, a tab or a carriage return
+ * gets a leading apostrophe so Excel treats it as text.
  */
 function csvCell(value: string | null | undefined): string {
   const text = value ?? '';
-  const guarded = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  const guarded =
+    !PLAIN_PHONE.test(text) && /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
   return /[";\r\n]/.test(guarded) ? `"${guarded.replaceAll('"', '""')}"` : guarded;
 }
 

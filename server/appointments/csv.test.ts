@@ -114,20 +114,41 @@ describe('toCsv', () => {
     expect(csv).toContain('åland');
   });
 
+  it('lets plain phone numbers through untouched', () => {
+    const csv = toCsv(
+      [
+        item({
+          customer: {
+            id: 3,
+            name: 'Ville Asiakas',
+            email: 'ville@example.com',
+            phone: '+358 40 123 4567',
+          },
+        }),
+        item({ id: 2, customer: { id: 4, name: 'Ville Asiakas', email: 'ville@example.com', phone: '040-123 4567' } }),
+      ],
+      'Europe/Helsinki',
+    );
+    const rows = csv.split('\r\n');
+    expect(rows[1]).toContain(';+358 40 123 4567;');
+    expect(rows[2]).toContain(';040-123 4567;');
+    expect(csv).not.toContain("'");
+  });
+
   it('neutralises cells that would execute as spreadsheet formulas', () => {
     const csv = toCsv(
       [
         item({
-          customer: { id: 3, name: '=SUM(A1:A9)', email: '+358 40 123 4567', phone: '-1234' },
+          customer: { id: 3, name: '=SUM(A1:A9)', email: 'ville@example.com', phone: null },
           notes: '@cmd',
         }),
+        item({ id: 2, notes: '-A1' }),
       ],
       'Europe/Helsinki',
     );
-    const row = csv.split('\r\n')[1];
-    expect(row).toContain(`'=SUM(A1:A9)`);
-    expect(row).toContain(`'+358 40 123 4567`);
-    expect(row).toContain(`'-1234`);
-    expect(row).toContain(`'@cmd`);
+    const rows = csv.split('\r\n');
+    expect(rows[1]).toContain(`'=SUM(A1:A9)`);
+    expect(rows[1]).toContain(`'@cmd`);
+    expect(rows[2]).toContain(`'-A1`);
   });
 });
