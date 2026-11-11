@@ -53,8 +53,10 @@ export function ForgotPasswordPage() {
         )}
         <FormField
           label="Email"
+          type="email"
           name="email"
           autoComplete="email"
+          autoCapitalize="none"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required

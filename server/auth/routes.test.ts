@@ -22,6 +22,15 @@ describe('auth routes', () => {
       .expect(200);
   });
 
+  it('sends a reset link for the email with different casing and whitespace', async () => {
+    await createClinicFixture();
+
+    await request(createApp())
+      .post('/api/auth/password-reset')
+      .send({ email: '  Owner@TestClinic.example ' })
+      .expect(200, { ok: true });
+  });
+
   it('rejects a wrong password', async () => {
     const { user } = await createClinicFixture();
 

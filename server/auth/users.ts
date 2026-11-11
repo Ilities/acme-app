@@ -30,11 +30,11 @@ export function findUserById(id: number): User | undefined {
 }
 
 export function findUserByEmail(email: string): User | undefined {
-  return db.select().from(users).where(eq(users.email, email)).get();
+  return db.select().from(users).where(eq(users.email, normalizeEmail(email))).get();
 }
 
 export async function authenticate(email: string, password: string): Promise<User | null> {
-  const user = findUserByEmail(normalizeEmail(email));
+  const user = findUserByEmail(email);
   if (!user) {
     return null;
   }

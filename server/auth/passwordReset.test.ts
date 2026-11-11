@@ -26,6 +26,22 @@ describe('password reset', () => {
     });
   });
 
+  it('accepts the email with different casing and whitespace', async () => {
+    const { user } = await createClinicFixture();
+
+    await expect(requestPasswordReset(`  ${user.email.toUpperCase()} `)).resolves.toBe(true);
+
+    expect(mailer.outbox.at(-1)).toMatchObject({ to: user.email });
+  });
+
+  it('accepts the email with only the first letter capitalised', async () => {
+    const { user } = await createClinicFixture();
+
+    await expect(requestPasswordReset('Owner@testclinic.example')).resolves.toBe(true);
+
+    expect(mailer.outbox.at(-1)).toMatchObject({ to: user.email });
+  });
+
   it('does not send anything for an unknown email', async () => {
     await createClinicFixture();
 
