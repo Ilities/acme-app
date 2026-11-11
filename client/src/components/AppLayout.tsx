@@ -15,7 +15,7 @@ const CLINIC_NAV: NavItem[] = [
   { to: '/staff', label: 'Staff' },
   { to: '/services', label: 'Services' },
   { to: '/billing', label: 'Plan & billing' },
-  { to: '/settings', label: 'Clinic Settings' },
+  { to: '/settings', label: 'Settings' },
 ];
 
 const ADMIN_NAV: NavItem[] = [{ to: '/admin/orders', label: 'Plan orders' }];

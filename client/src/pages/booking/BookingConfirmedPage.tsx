@@ -26,7 +26,7 @@ export function BookingConfirmedPage() {
             your visit.
           </p>
         )}
-        <p className="muted">You will recieve a confirmation email shortly.</p>
+        <p className="muted">You will receive a confirmation email shortly.</p>
         <div>
           <Link to={`/book/${slug}`} className="button button-secondary">
             Book another appointment

@@ -55,7 +55,7 @@ export function StaffPage() {
           isOwner &&
           !showForm && (
             <button type="button" className="button" onClick={() => setShowForm(true)}>
-              Add Staff member
+              Add staff member
             </button>
           )
         }
