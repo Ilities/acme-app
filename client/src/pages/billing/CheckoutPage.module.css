@@ -103,7 +103,7 @@
 @media (max-width: 400px) {
   .page {
     gap: 1rem;
-    padding: 0.25rem 0;
+    padding: 0.25rem 0 7rem;
   }
 
   .cardRow {
