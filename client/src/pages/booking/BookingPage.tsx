@@ -6,6 +6,7 @@ import { CardFields, parseExpiry } from '../../components/CardFields';
 import { FormField } from '../../components/FormField';
 import { ErrorMessage } from '../../components/PageHeader';
 import { formatDuration, formatMoney, todayIso } from '../../lib/format';
+import { loadRememberedCustomer, rememberCustomer } from '../../lib/rememberedCustomer';
 import { useApi } from '../../lib/useApi';
 import styles from './BookingPage.module.css';
 
@@ -18,9 +19,10 @@ export function BookingPage() {
   const [staffId, setStaffId] = useState('');
   const [date, setDate] = useState(todayIso());
   const [slot, setSlot] = useState<AvailableSlot | null>(null);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [remembered] = useState(loadRememberedCustomer);
+  const [name, setName] = useState(remembered.name);
+  const [email, setEmail] = useState(remembered.email);
+  const [phone, setPhone] = useState(remembered.phone);
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
@@ -72,6 +74,7 @@ export function BookingPage() {
           card,
         },
       );
+      rememberCustomer({ name, email, phone });
       navigate(`/book/${slug}/confirmed`, { state: { booking: response.booking } });
     } catch (err) {
       setBookingError(errorMessage(err));

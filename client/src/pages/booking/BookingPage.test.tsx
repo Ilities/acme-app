@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { todayIso } from '../../lib/format';
+import { loadRememberedCustomer } from '../../lib/rememberedCustomer';
 import { mockFetch } from '../../test/mockFetch';
 import { BookingPage } from './BookingPage';
 
@@ -78,6 +79,10 @@ function fillDetails() {
 }
 
 describe('BookingPage', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it('explains when the clinic is closed on the selected day', async () => {
     const saturday = nextDateMatching((weekday) => weekday === 6);
     mockFetch({
@@ -236,5 +241,67 @@ describe('BookingPage', () => {
     const bookingCall = fetchSpy.mock.calls.find(([path]) => String(path).endsWith('/bookings'));
     expect(bookingCall).toBeDefined();
     expect(JSON.parse(String(bookingCall?.[1]?.body))).not.toHaveProperty('card');
+  });
+
+  it('fills in the details remembered from the previous booking', async () => {
+    mockFetch({
+      'GET /api/public/clinics/test-clinic': () => ({ body: bookingPage(null) }),
+      ...availabilityRoute(),
+      'POST /api/public/clinics/test-clinic/bookings': () => ({
+        status: 201,
+        body: {
+          booking: {
+            appointmentId: 9,
+            clinicName: 'Test Clinic',
+            serviceName: 'Assessment',
+            staffName: 'Pekka Physio',
+            when: 'Friday, 20 November at 09:00',
+            depositPaidCents: null,
+          },
+        },
+      }),
+    });
+    renderBooking();
+    await chooseServiceAndSlot();
+
+    fillDetails();
+    fireEvent.change(screen.getByLabelText('Phone (optional)'), {
+      target: { value: '+358 40 555 1234' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
+
+    expect(await screen.findByText('Confirmed page')).toBeInTheDocument();
+    expect(loadRememberedCustomer()).toEqual({
+      name: 'Maija Meikäläinen',
+      email: 'maija@example.com',
+      phone: '+358 40 555 1234',
+    });
+
+    cleanup();
+    renderBooking();
+    await chooseServiceAndSlot();
+
+    expect(screen.getByLabelText('Full name')).toHaveValue('Maija Meikäläinen');
+    expect(screen.getByLabelText('Email')).toHaveValue('maija@example.com');
+    expect(screen.getByLabelText('Phone (optional)')).toHaveValue('+358 40 555 1234');
+  });
+
+  it('does not remember details when the booking fails', async () => {
+    mockFetch({
+      'GET /api/public/clinics/test-clinic': () => ({ body: bookingPage(null) }),
+      ...availabilityRoute(),
+      'POST /api/public/clinics/test-clinic/bookings': () => ({
+        status: 409,
+        body: { error: 'That time was just taken. Pick another time.' },
+      }),
+    });
+    renderBooking();
+    await chooseServiceAndSlot();
+
+    fillDetails();
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm booking' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('That time was just taken');
+    expect(loadRememberedCustomer()).toEqual({ name: '', email: '', phone: '' });
   });
 });
