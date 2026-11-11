@@ -44,6 +44,7 @@ export function SettingsPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (data) {
@@ -85,6 +86,22 @@ export function SettingsPage() {
   }
 
   const bookingUrl = data ? `${window.location.origin}/book/${data.clinic.slug}` : '';
+
+  useEffect(() => {
+    if (!copied) return;
+    const timeout = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timeout);
+  }, [copied]);
+
+  async function copyBookingLink() {
+    if (!bookingUrl) return;
+    try {
+      await navigator.clipboard.writeText(bookingUrl);
+      setCopied(true);
+    } catch {
+      // Ignore clipboard errors.
+    }
+  }
 
   return (
     <>
@@ -196,9 +213,18 @@ export function SettingsPage() {
               Let customers book online
             </label>
             {form.bookingEnabled && (
-              <p className="muted">
-                Your booking page: <a href={bookingUrl}>{bookingUrl}</a>
-              </p>
+              <div className="row muted">
+                <span>
+                  Your booking page: <a href={bookingUrl}>{bookingUrl}</a>
+                </span>
+                <button
+                  type="button"
+                  className="button button-secondary button-small"
+                  onClick={copyBookingLink}
+                >
+                  {copied ? 'Copied' : 'Copy link'}
+                </button>
+              </div>
             )}
           </fieldset>
 
