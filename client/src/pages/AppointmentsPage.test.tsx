@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import type { AppointmentListItem } from '../api/types';
@@ -50,6 +50,65 @@ describe('AppointmentsPage', () => {
 
     const exportLink = await screen.findByRole('link', { name: 'Export CSV' });
     expect(exportLink.getAttribute('href')).toBe('/api/appointments/export?scope=upcoming');
+  });
+
+  it('asks before cancelling and waits for confirmation', async () => {
+    const futureAppointment: AppointmentListItem = {
+      ...appointment,
+      id: 2,
+      startsAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      timeLabel: 'Thu 12 Nov, 14:00',
+      customer: { ...appointment.customer, name: 'Anna Svensson' },
+    };
+    const fetchSpy = mockFetch({
+      'GET /api/appointments?scope=upcoming': () => ({ body: { appointments: [futureAppointment] } }),
+      'PATCH /api/appointments/2': () => ({ body: {} }),
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toHaveTextContent("Cancel Anna Svensson's appointment on Thu 12 Nov, 14:00?");
+    const patchCalls = () =>
+      fetchSpy.mock.calls.filter(([, init]) => (init?.method ?? 'GET') === 'PATCH');
+    expect(patchCalls()).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Keep it' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(patchCalls()).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel appointment' }));
+
+    await waitFor(() => expect(patchCalls()).toHaveLength(1));
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/appointments/2',
+      expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ status: 'cancelled' }) }),
+    );
+  });
+
+  it('asks before marking an appointment as a no-show', async () => {
+    const fetchSpy = mockFetch({
+      'GET /api/appointments?scope=upcoming': () => ({ body: { appointments: [appointment] } }),
+      'PATCH /api/appointments/1': () => ({ body: {} }),
+    });
+    renderPage();
+
+    fireEvent.click(await screen.findByRole('button', { name: 'No-show' }));
+
+    expect(screen.getByRole('dialog')).toHaveTextContent(
+      "Mark Ville Asiakas's appointment on Tue 6 Oct, 10:00 as a no-show?",
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark no-show' }));
+
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        '/api/appointments/1',
+        expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ status: 'no_show' }) }),
+      ),
+    );
   });
 
   it('switches the list and the export link to the date range', async () => {
