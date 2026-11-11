@@ -96,6 +96,48 @@ describe('public booking routes', () => {
   });
 });
 
+describe('booking confirmation email', () => {
+  it('includes the clinic phone and email when both are saved', async () => {
+    const { service } = await createClinicFixture({ phone: '+358 9 123 4567' });
+    const app = createApp();
+    const startsAt = await firstSlot(app, service.id, bookableDate());
+
+    await request(app)
+      .post('/api/public/clinics/test-clinic/bookings')
+      .send({
+        serviceId: service.id,
+        startsAt,
+        customer: { name: 'Maija Meikäläinen', email: 'maija@example.com' },
+      })
+      .expect(201);
+
+    expect(mailer.outbox[0].text).toContain(
+      'If you need to change or cancel, please contact the clinic directly at ' +
+        '+358 9 123 4567 or hello@testclinic.example.',
+    );
+  });
+
+  it('shows only the email when the clinic has no phone number', async () => {
+    const { service } = await createClinicFixture();
+    const app = createApp();
+    const startsAt = await firstSlot(app, service.id, bookableDate());
+
+    await request(app)
+      .post('/api/public/clinics/test-clinic/bookings')
+      .send({
+        serviceId: service.id,
+        startsAt,
+        customer: { name: 'Maija Meikäläinen', email: 'maija@example.com' },
+      })
+      .expect(201);
+
+    expect(mailer.outbox[0].text).toContain(
+      'If you need to change or cancel, please contact the clinic directly at ' +
+        'hello@testclinic.example.',
+    );
+  });
+});
+
 describe('booking deposits', () => {
   it('shows the deposit a service asks for on the booking page', async () => {
     const { service } = await createClinicFixture({
