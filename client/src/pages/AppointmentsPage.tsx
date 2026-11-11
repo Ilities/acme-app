@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, errorMessage } from '../api/client';
 import type { AppointmentListItem, AppointmentStatus } from '../api/types';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { EmptyState, ErrorMessage, PageHeader } from '../components/PageHeader';
 import { StatusBadge } from '../components/StatusBadge';
 import { formatDuration, formatMoney } from '../lib/format';
@@ -9,6 +10,11 @@ import { useApi, useDebouncedValue } from '../lib/useApi';
 import styles from './AppointmentsPage.module.css';
 
 type Scope = 'upcoming' | 'past';
+
+interface PendingStatusChange {
+  appointment: AppointmentListItem;
+  next: 'cancelled' | 'no_show';
+}
 
 const STATUS_OPTIONS: { value: '' | AppointmentStatus; label: string }[] = [
   { value: '', label: 'All statuses' },
@@ -29,6 +35,8 @@ export function AppointmentsPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
+  const [pendingStatusChange, setPendingStatusChange] = useState<PendingStatusChange | null>(null);
+  const [savingStatus, setSavingStatus] = useState(false);
 
   const rangeActive = from !== '' || to !== '';
   const params = new URLSearchParams();
@@ -53,6 +61,16 @@ export function AppointmentsPage() {
     } catch (err) {
       setActionError(errorMessage(err));
     }
+  }
+
+  async function confirmStatusChange() {
+    if (!pendingStatusChange) {
+      return;
+    }
+    setSavingStatus(true);
+    await updateStatus(pendingStatusChange.appointment.id, pendingStatusChange.next);
+    setSavingStatus(false);
+    setPendingStatusChange(null);
   }
 
   const appointments = data?.appointments ?? [];
@@ -206,7 +224,7 @@ export function AppointmentsPage() {
                           <button
                             type="button"
                             className="button button-secondary button-small"
-                            onClick={() => updateStatus(appointment.id, 'no_show')}
+                            onClick={() => setPendingStatusChange({ appointment, next: 'no_show' })}
                           >
                             No-show
                           </button>
@@ -216,7 +234,7 @@ export function AppointmentsPage() {
                         <button
                           type="button"
                           className="button button-secondary button-small"
-                          onClick={() => updateStatus(appointment.id, 'cancelled')}
+                          onClick={() => setPendingStatusChange({ appointment, next: 'cancelled' })}
                         >
                           Cancel
                         </button>
@@ -228,6 +246,21 @@ export function AppointmentsPage() {
             </table>
           </div>
         </>
+      )}
+
+      {pendingStatusChange && (
+        <ConfirmDialog
+          title={pendingStatusChange.next === 'no_show' ? 'Mark as no-show?' : 'Cancel appointment?'}
+          confirmLabel={pendingStatusChange.next === 'no_show' ? 'Mark no-show' : 'Cancel appointment'}
+          onConfirm={confirmStatusChange}
+          onCancel={() => setPendingStatusChange(null)}
+          busy={savingStatus}
+          destructive={pendingStatusChange.next === 'cancelled'}
+        >
+          {pendingStatusChange.next === 'no_show'
+            ? `Mark ${pendingStatusChange.appointment.customer.name}'s appointment on ${pendingStatusChange.appointment.timeLabel} as a no-show?`
+            : `Cancel ${pendingStatusChange.appointment.customer.name}'s appointment on ${pendingStatusChange.appointment.timeLabel}?`}
+        </ConfirmDialog>
       )}
     </>
   );
