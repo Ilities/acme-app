@@ -38,6 +38,31 @@ describe('appointments routes', () => {
     });
   });
 
+  it('hides cancelled upcoming appointments unless the status filter is Cancelled', async () => {
+    const { clinic, user, staff, service, customer } = await createClinicFixture();
+    insertAppointment(clinic.id, service.id, staff.id, customer.id, '2027-01-12T08:00:00.000Z');
+    insertAppointment(clinic.id, service.id, staff.id, customer.id, '2027-01-12T09:00:00.000Z', {
+      status: 'cancelled',
+    });
+    insertAppointment(clinic.id, service.id, staff.id, customer.id, '2026-01-12T08:00:00.000Z', {
+      status: 'cancelled',
+    });
+
+    const agent = await signedInAgent(user.email);
+    const upcoming = await agent.get('/api/appointments?scope=upcoming').expect(200);
+    expect(upcoming.body.appointments.map((item: { status: string }) => item.status)).toEqual(['booked']);
+
+    const cancelledUpcoming = await agent
+      .get('/api/appointments?scope=upcoming&status=cancelled')
+      .expect(200);
+    expect(cancelledUpcoming.body.appointments.map((item: { status: string }) => item.status)).toEqual([
+      'cancelled',
+    ]);
+
+    const past = await agent.get('/api/appointments?scope=past').expect(200);
+    expect(past.body.appointments.map((item: { status: string }) => item.status)).toEqual(['cancelled']);
+  });
+
   it('labels appointment times in the clinic time zone (Helsinki)', async () => {
     const { clinic, user, staff, service, customer } = await createClinicFixture();
     // 08:00 UTC is 10:00 in Europe/Helsinki.

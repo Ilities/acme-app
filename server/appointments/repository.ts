@@ -121,6 +121,9 @@ export function listAppointments(clinicId: number, filters: AppointmentFilters):
     }
   } else if (filters.scope === 'upcoming') {
     conditions.push(gte(appointments.startsAt, now));
+    if (!filters.status) {
+      conditions.push(ne(appointments.status, 'cancelled'));
+    }
   } else if (filters.scope === 'past') {
     conditions.push(lt(appointments.startsAt, now));
   }
