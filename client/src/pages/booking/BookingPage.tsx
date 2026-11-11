@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, errorMessage } from '../../api/client';
 import type { AvailableSlot, BookingConfirmation, BookingPageData } from '../../api/types';
+import { CardFields, parseExpiry } from '../../components/CardFields';
 import { FormField } from '../../components/FormField';
 import { ErrorMessage } from '../../components/PageHeader';
 import { formatDuration, formatMoney, todayIso } from '../../lib/format';
@@ -20,6 +21,9 @@ export function BookingPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiry, setExpiry] = useState('');
+  const [cvc, setCvc] = useState('');
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,6 +47,18 @@ export function BookingPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (serviceId === null || !slot) return;
+
+    const service = page.data?.services.find((candidate) => candidate.id === serviceId);
+    let card;
+    if (service?.deposit) {
+      const parsedExpiry = parseExpiry(expiry);
+      if (!parsedExpiry) {
+        setBookingError('Enter the expiry date as MM/YY.');
+        return;
+      }
+      card = { number: cardNumber.replace(/\s/g, ''), cvc, ...parsedExpiry };
+    }
+
     setBookingError(null);
     setSubmitting(true);
     try {
@@ -53,6 +69,7 @@ export function BookingPage() {
           staffId: staffId ? Number(staffId) : undefined,
           startsAt: slot.startsAt,
           customer: { name, email, phone: phone || null },
+          card,
         },
       );
       navigate(`/book/${slug}/confirmed`, { state: { booking: response.booking } });
@@ -111,6 +128,11 @@ export function BookingPage() {
                 <span className="muted">
                   {formatDuration(option.durationMinutes)} · {formatMoney(option.priceCents)}
                 </span>
+                {option.deposit && (
+                  <span className={styles.serviceDeposit}>
+                    Deposit {formatMoney(option.deposit.amountCents)} at booking
+                  </span>
+                )}
                 {option.description && <span className={styles.serviceDescription}>{option.description}</span>}
               </label>
             ))}
@@ -213,8 +235,35 @@ export function BookingPage() {
                 month: 'long',
               })}
             </p>
+            {service.deposit && (
+              <>
+                <div className={styles.depositSummary}>
+                  <p className={styles.depositAmount}>
+                    Deposit due now: {formatMoney(service.deposit.amountCents)}
+                  </p>
+                  <p className="muted">
+                    The deposit counts towards the price of your visit.{' '}
+                    {service.deposit.refundableHours > 0
+                      ? `Cancel at least ${service.deposit.refundableHours} hours before your appointment to get it back.`
+                      : 'Cancel any time before your appointment to get it back.'}
+                  </p>
+                </div>
+                <CardFields
+                  number={cardNumber}
+                  expiry={expiry}
+                  cvc={cvc}
+                  onNumberChange={setCardNumber}
+                  onExpiryChange={setExpiry}
+                  onCvcChange={setCvc}
+                />
+              </>
+            )}
             <button type="submit" className="button" disabled={submitting}>
-              {submitting ? 'Booking…' : 'Confirm booking'}
+              {submitting
+                ? 'Booking…'
+                : service.deposit
+                  ? `Pay ${formatMoney(service.deposit.amountCents)} deposit and book`
+                  : 'Confirm booking'}
             </button>
           </section>
         )}

@@ -6,6 +6,7 @@ import { db } from '../db/client.js';
 import {
   appointments,
   customers,
+  depositPayments,
   services,
   staffMembers,
   type Clinic,
@@ -15,13 +16,17 @@ import { HttpError, notFound } from '../http/errors.js';
 import { addDays, formatDateTime, formatTime, toLocalDateString, zonedTimeToUtc } from '../lib/dates.js';
 import { mailer } from '../mail/mailer.js';
 import { bookingConfirmationEmail } from '../mail/templates.js';
+import { CURRENCY } from '../payments/plans.js';
+import { DECLINE_MESSAGES, type CardDetails } from '../payments/provider.js';
 import { computeSlots, type Slot } from './availability.js';
+import { chargeDeposit, depositDueFor, markDepositPaid } from './deposits.js';
 
 export interface BookingRequest {
   serviceId: number;
   staffId?: number;
   startsAt: Date;
   customer: { name: string; email: string; phone?: string | null };
+  card?: CardDetails;
 }
 
 export interface BookingConfirmation {
@@ -30,6 +35,7 @@ export interface BookingConfirmation {
   serviceName: string;
   staffName: string;
   when: string;
+  depositPaidCents: number | null;
 }
 
 export function getBookableClinic(slug: string): Clinic {
@@ -77,6 +83,7 @@ export function getBookingPage(clinic: Clinic) {
       description: service.description,
       durationMinutes: service.durationMinutes,
       priceCents: service.priceCents,
+      deposit: depositDueFor(clinic, service),
     })),
     staff: activeStaff(clinic.id).map((member) => ({
       id: member.id,
@@ -132,6 +139,12 @@ export async function createBooking(
   request: BookingRequest,
 ): Promise<BookingConfirmation> {
   const service = findBookableService(clinic, request.serviceId);
+  const deposit = depositDueFor(clinic, service);
+  const card = request.card;
+  if (deposit && !card) {
+    throw new HttpError(400, 'This service requires a deposit. Enter your card details to book.');
+  }
+
   const date = toLocalDateString(request.startsAt, clinic.timezone);
   const slot = slotsFor(clinic, service, date, request.staffId).find(
     (candidate) => candidate.startsAt.getTime() === request.startsAt.getTime(),
@@ -148,7 +161,11 @@ export async function createBooking(
 
   const email = normalizeEmail(request.customer.email);
 
-  const appointment = db.transaction((tx) => {
+  // The appointment is inserted before the card is charged: holding the slot means
+  // a second request for the same time is rejected (409) before any money moves,
+  // so a double submit cannot be charged twice. If the charge is then declined,
+  // the appointment is deleted again below.
+  const { appointment, depositPayment } = db.transaction((tx) => {
     let customer = tx
       .select()
       .from(customers)
@@ -178,7 +195,7 @@ export async function createBooking(
         .get();
     }
 
-    return tx
+    const created = tx
       .insert(appointments)
       .values({
         clinicId: clinic.id,
@@ -191,7 +208,47 @@ export async function createBooking(
       })
       .returning()
       .get();
+
+    // refundableHours snapshots the clinic's cancellation rule at booking time,
+    // for the later refunds task.
+    const pendingDeposit = deposit
+      ? tx
+          .insert(depositPayments)
+          .values({
+            clinicId: clinic.id,
+            appointmentId: created.id,
+            amountCents: deposit.amountCents,
+            currency: CURRENCY,
+            refundableHours: deposit.refundableHours,
+          })
+          .returning()
+          .get()
+      : null;
+
+    return { appointment: created, depositPayment: pendingDeposit };
   });
+
+  let depositPaidCents: number | null = null;
+
+  if (depositPayment && card) {
+    const result = await chargeDeposit({
+      deposit: depositPayment,
+      card,
+      clinicName: clinic.name,
+      serviceName: service.name,
+    });
+
+    if (result.status === 'declined') {
+      // No booking without a payment: free the slot again and let the deposit
+      // row go with the appointment. The attempt itself is recorded by the
+      // payment provider.
+      db.delete(appointments).where(eq(appointments.id, appointment.id)).run();
+      throw new HttpError(402, DECLINE_MESSAGES[result.reason]);
+    }
+
+    markDepositPaid(depositPayment.id, result.reference);
+    depositPaidCents = depositPayment.amountCents;
+  }
 
   const when = formatDateTime(slot.startsAt, clinic.timezone);
 
@@ -203,6 +260,9 @@ export async function createBooking(
       serviceName: service.name,
       staffName: staff.name,
       when,
+      deposit: deposit
+        ? { amountCents: deposit.amountCents, refundableHours: deposit.refundableHours }
+        : null,
     }),
   );
 
@@ -212,5 +272,6 @@ export async function createBooking(
     serviceName: service.name,
     staffName: staff.name,
     when,
+    depositPaidCents,
   };
 }

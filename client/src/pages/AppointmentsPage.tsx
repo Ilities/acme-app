@@ -4,7 +4,7 @@ import { api, errorMessage } from '../api/client';
 import type { AppointmentListItem, AppointmentStatus } from '../api/types';
 import { EmptyState, ErrorMessage, PageHeader } from '../components/PageHeader';
 import { StatusBadge } from '../components/StatusBadge';
-import { formatDuration } from '../lib/format';
+import { formatDuration, formatMoney } from '../lib/format';
 import { useApi, useDebouncedValue } from '../lib/useApi';
 import styles from './AppointmentsPage.module.css';
 
@@ -136,7 +136,14 @@ export function AppointmentsPage() {
                       <div>{appointment.customer.name}</div>
                       <div className="muted">{appointment.customer.phone ?? appointment.customer.email}</div>
                     </td>
-                    <td>{appointment.service.name}</td>
+                    <td>
+                      <div>{appointment.service.name}</div>
+                      {appointment.deposit?.status === 'paid' && (
+                        <div className="muted">
+                          Deposit {formatMoney(appointment.deposit.amountCents)} paid
+                        </div>
+                      )}
+                    </td>
                     <td>{appointment.staff.name}</td>
                     <td>
                       <StatusBadge status={appointment.status} />

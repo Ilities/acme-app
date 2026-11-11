@@ -53,6 +53,12 @@
   color: var(--color-muted);
 }
 
+.serviceDeposit {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
 .selected {
   border-color: var(--color-primary);
   background: var(--color-primary-soft);
@@ -86,6 +92,24 @@
 
 .slot.selected {
   color: var(--color-primary);
+  font-weight: 600;
+}
+
+.depositSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-primary-soft);
+}
+
+.depositSummary p {
+  margin: 0;
+}
+
+.depositAmount {
   font-weight: 600;
 }
 

@@ -3,11 +3,14 @@ import { db } from '../db/client.js';
 import {
   appointments,
   customers,
+  depositPayments,
   services,
   staffMembers,
   type Appointment,
   type AppointmentStatus,
   type Customer,
+  type DepositPayment,
+  type DepositStatus,
   type Service,
   type StaffMember,
 } from '../db/schema.js';
@@ -35,6 +38,8 @@ export interface AppointmentListItem {
   service: { id: number; name: string; priceCents: number };
   staff: { id: number; name: string };
   customer: { id: number; name: string; email: string; phone: string | null };
+  /** Deposit taken when the customer booked online; null when none was due. */
+  deposit: { amountCents: number; status: DepositStatus; paidAt: string | null } | null;
 }
 
 export interface BusyInterval {
@@ -49,6 +54,7 @@ function toListItem(
   staff: StaffMember,
   customer: Customer,
   timeZone: string,
+  deposit: DepositPayment | undefined,
 ): AppointmentListItem {
   return {
     id: appointment.id,
@@ -69,6 +75,13 @@ function toListItem(
       email: customer.email,
       phone: customer.phone,
     },
+    deposit: deposit
+      ? {
+          amountCents: deposit.amountCents,
+          status: deposit.status,
+          paidAt: deposit.paidAt ? deposit.paidAt.toISOString() : null,
+        }
+      : null,
   };
 }
 
@@ -104,7 +117,12 @@ export function listAppointments(clinicId: number, filters: AppointmentFilters):
     if (search && !customer.name.toLowerCase().includes(search)) {
       continue;
     }
-    items.push(toListItem(row, service, staff, customer, filters.timeZone));
+    const deposit = db
+      .select()
+      .from(depositPayments)
+      .where(eq(depositPayments.appointmentId, row.id))
+      .get();
+    items.push(toListItem(row, service, staff, customer, filters.timeZone, deposit));
   }
 
   return items;

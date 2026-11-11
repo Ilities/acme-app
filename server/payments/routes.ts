@@ -8,6 +8,7 @@ import { PLAN_IDS, planOrders } from '../db/schema.js';
 import { HttpError, notFound } from '../http/errors.js';
 import { parseId, queryString } from '../http/params.js';
 import { checkoutPlan } from './checkout.js';
+import { cardDetailsSchema } from './card.js';
 import { PLANS, isPlanId, quotePlan } from './plans.js';
 
 export const billingRouter = Router();
@@ -16,12 +17,7 @@ const checkoutSchema = z.object({
   plan: z.enum(PLAN_IDS),
   billingName: z.string().trim().min(2, 'Enter the name on the invoice').max(120),
   vatId: z.string().trim().max(20).nullable().optional(),
-  card: z.object({
-    number: z.string().trim().min(12, 'Enter your card number'),
-    expMonth: z.number().int().min(1).max(12),
-    expYear: z.number().int().min(2000).max(2100),
-    cvc: z.string().trim().min(3, 'Enter the security code'),
-  }),
+  card: cardDetailsSchema,
 });
 
 billingRouter.get('/plans', (req, res) => {

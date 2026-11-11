@@ -2,27 +2,12 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, errorMessage } from '../../api/client';
 import type { PlanOrder, PlanQuote } from '../../api/types';
+import { CardFields, parseExpiry } from '../../components/CardFields';
 import { FormField } from '../../components/FormField';
 import { ErrorMessage } from '../../components/PageHeader';
 import { formatMoney } from '../../lib/format';
 import { useApi } from '../../lib/useApi';
 import styles from './CheckoutPage.module.css';
-
-function parseExpiry(value: string): { expMonth: number; expYear: number } | null {
-  const match = value.trim().match(/^(\d{1,2})\s*\/\s*(\d{2}|\d{4})$/);
-  if (!match) return null;
-  const expMonth = Number(match[1]);
-  const year = Number(match[2]);
-  if (expMonth < 1 || expMonth > 12) return null;
-  return { expMonth, expYear: year < 100 ? 2000 + year : year };
-}
-
-function formatCardNumber(value: string): string {
-  return value
-    .replace(/\D/g, '')
-    .slice(0, 19)
-    .replace(/(\d{4})(?=\d)/g, '$1 ');
-}
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -104,33 +89,14 @@ export function CheckoutPage() {
 
           <section className="card stack">
             <h2>Payment</h2>
-            <FormField
-              label="Card number"
-              inputMode="numeric"
-              autoComplete="cc-number"
-              value={cardNumber}
-              onChange={(event) => setCardNumber(formatCardNumber(event.target.value))}
-              required
+            <CardFields
+              number={cardNumber}
+              expiry={expiry}
+              cvc={cvc}
+              onNumberChange={setCardNumber}
+              onExpiryChange={setExpiry}
+              onCvcChange={setCvc}
             />
-            <div className={styles.cardRow}>
-              <FormField
-                label="Expiry"
-                placeholder="MM/YY"
-                autoComplete="cc-exp"
-                value={expiry}
-                onChange={(event) => setExpiry(event.target.value)}
-                required
-              />
-              <FormField
-                label="CVC"
-                inputMode="numeric"
-                autoComplete="cc-csc"
-                maxLength={4}
-                value={cvc}
-                onChange={(event) => setCvc(event.target.value.replace(/\D/g, ''))}
-                required
-              />
-            </div>
           </section>
         </form>
       </div>
