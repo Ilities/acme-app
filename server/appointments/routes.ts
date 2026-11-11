@@ -103,6 +103,7 @@ appointmentsRouter.post('/', (req, res) => {
       customerId: customer.id,
       startsAt,
       endsAt,
+      priceCents: service.priceCents,
       source: 'staff',
       notes: input.notes || null,
     })

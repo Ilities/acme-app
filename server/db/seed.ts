@@ -187,6 +187,7 @@ function seedClinic(seed: SeedClinic, passwordHash: string, random: Random, now:
         customerId: random.pick(clinicCustomers).id,
         startsAt,
         endsAt,
+        priceCents: service.priceCents,
         status: isPast ? pastStatus(random) : random.chance(0.92) ? 'booked' : 'cancelled',
         source,
         notes: random.chance(0.15) ? random.pick(APPOINTMENT_NOTES) : null,

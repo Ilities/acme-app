@@ -38,10 +38,12 @@ export interface AppointmentListItem {
   endsAt: string;
   timeLabel: string;
   durationMinutes: number;
+  /** What this booking was worth when it was made; later price edits don't change it. */
+  priceCents: number;
   status: AppointmentStatus;
   source: Appointment['source'];
   notes: string | null;
-  service: { id: number; name: string; priceCents: number };
+  service: { id: number; name: string };
   staff: { id: number; name: string };
   customer: { id: number; name: string; email: string; phone: string | null };
   /** Deposit taken when the customer booked online; null when none was due. */
@@ -63,7 +65,7 @@ interface AppointmentListRow {
   notes: string | null;
   serviceId: number;
   serviceName: string;
-  servicePriceCents: number;
+  priceCents: number;
   staffId: number;
   staffName: string;
   customerId: number;
@@ -82,10 +84,11 @@ function toListItem(row: AppointmentListRow, timeZone: string): AppointmentListI
     endsAt: row.endsAt.toISOString(),
     timeLabel: formatDateTime(row.startsAt, timeZone),
     durationMinutes: Math.round((row.endsAt.getTime() - row.startsAt.getTime()) / 60_000),
+    priceCents: row.priceCents,
     status: row.status,
     source: row.source,
     notes: row.notes,
-    service: { id: row.serviceId, name: row.serviceName, priceCents: row.servicePriceCents },
+    service: { id: row.serviceId, name: row.serviceName },
     staff: { id: row.staffId, name: row.staffName },
     customer: {
       id: row.customerId,
@@ -158,7 +161,7 @@ export function listAppointments(clinicId: number, filters: AppointmentFilters):
       notes: appointments.notes,
       serviceId: services.id,
       serviceName: services.name,
-      servicePriceCents: services.priceCents,
+      priceCents: appointments.priceCents,
       staffId: staffMembers.id,
       staffName: staffMembers.name,
       customerId: customers.id,

@@ -22,6 +22,13 @@
       "when": 1794421574901,
       "tag": "0002_appointment_list_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1794426297040,
+      "tag": "0003_appointment_price_snapshot",
+      "breakpoints": true
     }
   ]
 }

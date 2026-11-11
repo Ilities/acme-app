@@ -10,10 +10,11 @@ function item(overrides: Partial<AppointmentListItem> = {}): AppointmentListItem
     endsAt: '2027-01-12T09:00:00.000Z',
     timeLabel: 'Tue 12 Jan, 10:00',
     durationMinutes: 60,
+    priceCents: 8000,
     status: 'completed',
     source: 'online',
     notes: null,
-    service: { id: 1, name: 'Assessment', priceCents: 8000 },
+    service: { id: 1, name: 'Assessment' },
     staff: { id: 2, name: 'Pekka Physio' },
     customer: { id: 3, name: 'Ville Asiakas', email: 'ville@example.com', phone: null },
     deposit: null,
@@ -55,7 +56,8 @@ describe('toCsv', () => {
     const csv = toCsv(
       [
         item({
-          service: { id: 1, name: 'Package', priceCents: 123456 },
+          service: { id: 1, name: 'Package' },
+          priceCents: 123456,
           deposit: { amountCents: 2500, status: 'paid', paidAt: '2027-01-01T10:00:00.000Z' },
         }),
       ],
@@ -94,7 +96,7 @@ describe('toCsv', () => {
     const csv = toCsv(
       [
         item({
-          service: { id: 1, name: 'Deep;Tissue Massage', priceCents: 8000 },
+          service: { id: 1, name: 'Deep;Tissue Massage' },
           notes: 'Said "see you\r\nnext month"',
         }),
       ],
