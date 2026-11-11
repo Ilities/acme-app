@@ -9,6 +9,7 @@
   top: 0;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: 1.5rem;
   height: 100vh;
   padding: 1.25rem 1rem;
@@ -48,6 +49,7 @@
 .nav {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: 0.125rem;
 }
 
@@ -93,11 +95,13 @@
   padding: 2rem;
   max-width: 1120px;
   width: 100%;
+  min-width: 0;
 }
 
 @media (max-width: 860px) {
   .shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .sidebar {
@@ -116,7 +120,9 @@
     order: 3;
     flex-direction: row;
     width: 100%;
+    max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
   }
 
   .link {
