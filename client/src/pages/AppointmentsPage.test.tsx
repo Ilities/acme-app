@@ -29,6 +29,18 @@ function renderPage() {
 }
 
 describe('AppointmentsPage', () => {
+  it('describes the supported appointment search fields', () => {
+    mockFetch({
+      'GET /api/appointments?scope=upcoming': () => ({ body: { appointments: [] } }),
+    });
+    renderPage();
+
+    expect(screen.getByRole('searchbox', { name: 'Search appointments by name, phone or email' })).toHaveAttribute(
+      'placeholder',
+      'Search by name, phone or email',
+    );
+  });
+
   it('links the export to the current view by default', async () => {
     mockFetch({
       'GET /api/appointments?scope=upcoming': () => ({ body: { appointments: [appointment] } }),

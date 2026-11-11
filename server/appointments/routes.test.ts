@@ -200,6 +200,37 @@ describe('appointments routes', () => {
     expect(response.body.appointments[0].customer.name).toBe('Älli Öhman');
   });
 
+  it('filters by customer email and phone, ignoring phone spaces', async () => {
+    const { clinic, user, staff, service } = await createClinicFixture();
+    const customer = db
+      .insert(customers)
+      .values({
+        clinicId: clinic.id,
+        name: 'Caller Customer',
+        email: 'caller@example.com',
+        phone: '040 123 4567',
+      })
+      .returning()
+      .get();
+    insertAppointment(clinic.id, service.id, staff.id, customer.id, '2027-01-12T08:00:00.000Z');
+
+    const agent = await signedInAgent(user.email);
+    const byEmail = await agent.get('/api/appointments?q=CALLER%40EXAMPLE.COM').expect(200);
+    expect(byEmail.body.appointments.map((item: { customer: { name: string } }) => item.customer.name)).toEqual([
+      'Caller Customer',
+    ]);
+
+    const byUnspacedPhone = await agent.get('/api/appointments?q=0401234567').expect(200);
+    expect(byUnspacedPhone.body.appointments.map((item: { customer: { name: string } }) => item.customer.name)).toEqual([
+      'Caller Customer',
+    ]);
+
+    const bySpacedPhone = await agent.get('/api/appointments').query({ q: '040 123 4567' }).expect(200);
+    expect(bySpacedPhone.body.appointments.map((item: { customer: { name: string } }) => item.customer.name)).toEqual([
+      'Caller Customer',
+    ]);
+  });
+
   it('treats LIKE wildcards in the search as literal characters', async () => {
     const { clinic, user, staff, service, customer } = await createClinicFixture();
     const percent = db
