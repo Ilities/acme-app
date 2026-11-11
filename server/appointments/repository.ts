@@ -19,6 +19,8 @@ export interface AppointmentFilters {
   search?: string;
   limit?: number;
   now?: Date;
+  /** Time zone the appointment times are labelled in; the clinic's own time zone. */
+  timeZone: string;
 }
 
 export interface AppointmentListItem {
@@ -46,12 +48,13 @@ function toListItem(
   service: Service,
   staff: StaffMember,
   customer: Customer,
+  timeZone: string,
 ): AppointmentListItem {
   return {
     id: appointment.id,
     startsAt: appointment.startsAt.toISOString(),
     endsAt: appointment.endsAt.toISOString(),
-    timeLabel: formatDateTime(appointment.startsAt),
+    timeLabel: formatDateTime(appointment.startsAt, timeZone),
     durationMinutes: Math.round(
       (appointment.endsAt.getTime() - appointment.startsAt.getTime()) / 60_000,
     ),
@@ -69,10 +72,7 @@ function toListItem(
   };
 }
 
-export function listAppointments(
-  clinicId: number,
-  filters: AppointmentFilters = {},
-): AppointmentListItem[] {
+export function listAppointments(clinicId: number, filters: AppointmentFilters): AppointmentListItem[] {
   const now = filters.now ?? new Date();
   const conditions: SQL[] = [eq(appointments.clinicId, clinicId)];
   if (filters.scope === 'upcoming') {
@@ -104,7 +104,7 @@ export function listAppointments(
     if (search && !customer.name.toLowerCase().includes(search)) {
       continue;
     }
-    items.push(toListItem(row, service, staff, customer));
+    items.push(toListItem(row, service, staff, customer, filters.timeZone));
   }
 
   return items;

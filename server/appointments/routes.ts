@@ -34,7 +34,8 @@ const updateSchema = z.object({
 
 appointmentsRouter.get('/', (req, res) => {
   const { scope, status, q } = listQuerySchema.parse(req.query);
-  const items = listAppointments(clinicIdOf(req), { scope, status, search: q });
+  const clinic = getClinic(clinicIdOf(req));
+  const items = listAppointments(clinic.id, { scope, status, search: q, timeZone: clinic.timezone });
   res.json({ appointments: items });
 });
 

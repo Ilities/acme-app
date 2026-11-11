@@ -54,6 +54,12 @@ dashboardRouter.get('/', (req, res) => {
     todayCount: countBetween(clinicId, startOfToday, startOfTomorrow),
     weekCount: countBetween(clinicId, startOfToday, inSevenDays),
     monthRevenueCents: completedThisMonth.reduce((total, row) => total + row.priceCents, 0),
-    upcoming: listAppointments(clinicId, { scope: 'upcoming', status: 'booked', limit: 5, now }),
+    upcoming: listAppointments(clinicId, {
+      scope: 'upcoming',
+      status: 'booked',
+      limit: 5,
+      now,
+      timeZone: clinic.timezone,
+    }),
   });
 });
