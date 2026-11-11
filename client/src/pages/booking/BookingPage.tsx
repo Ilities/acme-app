@@ -5,7 +5,7 @@ import type { AvailableSlot, BookingConfirmation, BookingPageData } from '../../
 import { CardFields, parseExpiry } from '../../components/CardFields';
 import { FormField } from '../../components/FormField';
 import { ErrorMessage } from '../../components/PageHeader';
-import { formatDuration, formatMoney, todayIso } from '../../lib/format';
+import { formatClinicAddress, formatDuration, formatMoney, todayIso } from '../../lib/format';
 import { useApi } from '../../lib/useApi';
 import styles from './BookingPage.module.css';
 
@@ -108,7 +108,7 @@ export function BookingPage() {
       <header className={styles.header}>
         <h1>{data.clinic.name}</h1>
         <p className="muted">
-          {[data.clinic.addressLine, data.clinic.city].filter(Boolean).join(', ')}
+          {formatClinicAddress(data.clinic.addressLine, data.clinic.city)}
           {data.clinic.phone && ` · ${data.clinic.phone}`}
         </p>
       </header>

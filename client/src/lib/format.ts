@@ -15,6 +15,11 @@ export function formatDuration(minutes: number): string {
   return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
 }
 
+/** The clinic's street address and city, on one line. */
+export function formatClinicAddress(addressLine: string | null, city: string): string {
+  return [addressLine, city].filter(Boolean).join(', ');
+}
+
 export function todayIso(): string {
   const now = new Date();
   const month = String(now.getMonth() + 1).padStart(2, '0');

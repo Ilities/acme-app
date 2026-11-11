@@ -32,6 +32,11 @@ export interface BookingRequest {
 export interface BookingConfirmation {
   appointmentId: number;
   clinicName: string;
+  /** Street address and city, so the customer knows where to go. */
+  clinicAddressLine: string | null;
+  clinicCity: string;
+  /** The clinic's phone number, when it has one saved. */
+  clinicPhone: string | null;
   serviceName: string;
   staffName: string;
   when: string;
@@ -272,6 +277,9 @@ export async function createBooking(
   return {
     appointmentId: appointment.id,
     clinicName: clinic.name,
+    clinicAddressLine: clinic.addressLine,
+    clinicCity: clinic.city,
+    clinicPhone: clinic.phone,
     serviceName: service.name,
     staffName: staff.name,
     when,

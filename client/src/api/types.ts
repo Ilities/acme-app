@@ -154,6 +154,11 @@ export interface AvailableSlot {
 export interface BookingConfirmation {
   appointmentId: number;
   clinicName: string;
+  /** Street address and city, so the customer knows where to go. */
+  clinicAddressLine: string | null;
+  clinicCity: string;
+  /** The clinic's phone number, when it has one saved. */
+  clinicPhone: string | null;
   serviceName: string;
   staffName: string;
   when: string;

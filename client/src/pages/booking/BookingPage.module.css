@@ -47,6 +47,12 @@
   font-weight: 500;
 }
 
+.clinicDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .serviceDescription {
   margin-top: 0.25rem;
   font-size: 0.875rem;
