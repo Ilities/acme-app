@@ -83,6 +83,15 @@ a {
   gap: 1rem;
 }
 
+.note-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 .row {
   display: flex;
   flex-wrap: wrap;

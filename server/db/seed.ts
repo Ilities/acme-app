@@ -1,3 +1,4 @@
+import { eq } from 'drizzle-orm';
 import { hashPassword } from '../auth/password.js';
 import { addDays, addMinutes, isoWeekday, toLocalDateString, zonedTimeToUtc } from '../lib/dates.js';
 import { quotePlan } from '../payments/plans.js';
@@ -6,6 +7,7 @@ import {
   appointments,
   clinics,
   customers,
+  orderNotes,
   passwordResetTokens,
   planOrders,
   services,
@@ -221,15 +223,41 @@ async function main() {
 
   db.transaction(() => {
     clearDatabase();
-    for (const admin of ACME_ADMINS) {
-      db.insert(users).values({ ...admin, role: 'acme_admin', passwordHash }).run();
-    }
+    const admins = ACME_ADMINS.map((admin) =>
+      db
+        .insert(users)
+        .values({ ...admin, role: 'acme_admin', passwordHash })
+        .returning()
+        .get(),
+    );
     let total = 0;
     for (const clinic of SEED_CLINICS) {
       const count = seedClinic(clinic, passwordHash, random, now);
       console.info(`Seeded ${clinic.name} with ${count} appointments`);
       total += count;
     }
+
+    const paidOrders = db
+      .select({ id: planOrders.id })
+      .from(planOrders)
+      .where(eq(planOrders.status, 'paid'))
+      .all();
+    const sampleNotes = [
+      'Invoice paid by bank transfer, not by card.',
+      'Gave a 10% goodwill discount because the first month had booking trouble.',
+      'Clinic asked for the invoice to go to their accountant.',
+    ];
+    sampleNotes.forEach((body, index) => {
+      const order = paidOrders[index];
+      if (!order) {
+        return;
+      }
+      const createdAt = new Date(now.getTime() - (sampleNotes.length - index) * 86_400_000);
+      db.insert(orderNotes)
+        .values({ orderId: order.id, authorId: admins[index % admins.length].id, body, createdAt })
+        .run();
+    });
+
     console.info(`Seeded ${SEED_CLINICS.length} clinics and ${total} appointments`);
   });
 

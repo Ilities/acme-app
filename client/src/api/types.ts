@@ -115,6 +115,14 @@ export interface AdminOrder {
   currency: string;
   status: OrderStatus;
   createdAt: string;
+  noteCount: number;
+}
+
+export interface AdminOrderNote {
+  id: number;
+  body: string;
+  authorName: string;
+  createdAt: string;
 }
 
 export interface BookingPageData {

@@ -6,6 +6,7 @@ import {
   appointments,
   clinics,
   customers,
+  orderNotes,
   passwordResetTokens,
   planOrders,
   services,
@@ -21,6 +22,7 @@ export function resetDatabase(): void {
   db.delete(sessions).run();
   db.delete(passwordResetTokens).run();
   db.delete(appointments).run();
+  db.delete(orderNotes).run();
   db.delete(planOrders).run();
   db.delete(customers).run();
   db.delete(services).run();
@@ -81,6 +83,25 @@ export async function createClinicFixture(
     .get();
 
   return { clinic, user, staff, service, customer };
+}
+
+export async function createAdminFixture(
+  overrides: Partial<typeof users.$inferInsert> = {},
+) {
+  const user = db
+    .insert(users)
+    .values({
+      clinicId: null,
+      email: 'admin@acme.example',
+      name: 'Ada Admin',
+      role: 'acme_admin',
+      passwordHash: await hashPassword(TEST_PASSWORD),
+      ...overrides,
+    })
+    .returning()
+    .get();
+
+  return { user };
 }
 
 export async function signedInAgent(email: string, password = TEST_PASSWORD) {

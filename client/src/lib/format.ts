@@ -6,6 +6,13 @@ export function formatDate(value: string | Date): string {
   return new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium' }).format(new Date(value));
 }
 
+export function formatDateTime(value: string | Date): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
 export function formatDuration(minutes: number): string {
   if (minutes < 60) {
     return `${minutes} min`;
