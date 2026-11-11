@@ -1,3 +1,4 @@
+import { formatMoney } from '../lib/money.js';
 import type { MailMessage } from './mailer.js';
 
 export function passwordResetEmail(input: {
@@ -30,6 +31,8 @@ export function bookingConfirmationEmail(input: {
   serviceName: string;
   staffName: string;
   when: string;
+  /** Deposit charged at booking, if the service asked for one. */
+  deposit?: { amountCents: number; refundableHours: number } | null;
 }): MailMessage {
   return {
     to: input.to,
@@ -42,6 +45,15 @@ export function bookingConfirmationEmail(input: {
       `Service: ${input.serviceName}`,
       `With: ${input.staffName}`,
       `When: ${input.when}`,
+      ...(input.deposit
+        ? [
+            '',
+            `Deposit paid: ${formatMoney(input.deposit.amountCents)} (this counts towards the price of your visit).`,
+            input.deposit.refundableHours > 0
+              ? `Cancel at least ${input.deposit.refundableHours} hours before your appointment to get the deposit back.`
+              : 'Cancel any time before your appointment to get the deposit back.',
+          ]
+        : []),
       '',
       'If you need to change or cancel, please contact the clinic directly.',
       '',

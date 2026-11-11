@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { isIsoDate } from '../lib/dates.js';
+import { cardDetailsSchema } from '../payments/card.js';
 import { createBooking, getAvailability, getBookableClinic, getBookingPage } from './bookingService.js';
 
 export const bookingRouter = Router();
@@ -20,6 +21,8 @@ const bookingSchema = z.object({
     email: z.string().trim().email('Enter a valid email address'),
     phone: z.string().trim().max(40).nullable().optional(),
   }),
+  // Required when the service asks for a deposit; checked in createBooking.
+  card: cardDetailsSchema.optional(),
 });
 
 bookingRouter.get('/clinics/:slug', (req, res) => {

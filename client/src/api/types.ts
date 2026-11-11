@@ -71,6 +71,7 @@ export interface AppointmentListItem {
   service: { id: number; name: string; priceCents: number };
   staff: { id: number; name: string };
   customer: { id: number; name: string; email: string; phone: string | null };
+  deposit: { amountCents: number; status: DepositStatus; paidAt: string | null } | null;
 }
 
 export interface DashboardData {
@@ -135,7 +136,10 @@ export interface BookingPageData {
     closesAt: string;
     openDays: number[];
   };
-  services: Pick<Service, 'id' | 'name' | 'description' | 'durationMinutes' | 'priceCents'>[];
+  services: (Pick<Service, 'id' | 'name' | 'description' | 'durationMinutes' | 'priceCents'> & {
+    /** Deposit due at booking; null when the service asks for none. */
+    deposit: { amountCents: number; refundableHours: number } | null;
+  })[];
   staff: Pick<StaffMember, 'id' | 'name' | 'title'>[];
 }
 
@@ -151,4 +155,5 @@ export interface BookingConfirmation {
   serviceName: string;
   staffName: string;
   when: string;
+  depositPaidCents: number | null;
 }

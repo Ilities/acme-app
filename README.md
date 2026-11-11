@@ -99,7 +99,7 @@ Outgoing email goes through `server/mail/mailer.ts`. In development the `DevMail
 
 ### Payments
 
-Checkout talks to a `PaymentProvider` (`server/payments/provider.ts`). The app ships with `FakePaymentProvider`, which validates cards locally and never makes network calls. Use these card numbers with any future expiry date and any three-digit CVC:
+Checkout talks to a `PaymentProvider` (`server/payments/provider.ts`). The app ships with `FakePaymentProvider`, which validates cards locally and never makes network calls. Booking deposits use the same provider. Use these card numbers with any future expiry date and any three-digit CVC:
 
 | Card number        | Result             |
 | ------------------ | ------------------ |
